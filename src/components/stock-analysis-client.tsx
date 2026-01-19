@@ -595,25 +595,33 @@ export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote
                         Top Buyers
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      {bandarmologySummary.topBuyers.length > 0 ? (
-                        <div className="space-y-2">
-                          {bandarmologySummary.topBuyers.slice(0, 5).map((broker, idx) => (
-                            <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                              <div>
-                                <p className="font-medium">{broker.brokerCode}</p>
-                                <p className="text-xs text-muted-foreground">{broker.brokerName}</p>
+                      <CardContent>
+                        {bandarmologySummary.topBuyers.length > 0 ? (
+                          <div className="space-y-2">
+                            {bandarmologySummary.topBuyers.slice(0, 5).map((broker, idx) => (
+                              <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">{broker.brokerCode}</p>
+                                  {broker.brokerType && (
+                                    <Badge variant="outline" className={`text-xs ${
+                                      broker.brokerType === 'Asing' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' :
+                                      broker.brokerType === 'Pemerintah' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30' :
+                                      'bg-gray-500/10 text-gray-500 border-gray-500/30'
+                                    }`}>
+                                      {broker.brokerType}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-mono text-bullish">{formatCurrency(broker.netValue)}</p>
+                                </div>
                               </div>
-                              <div className="text-right">
-                                <p className="font-mono text-bullish">{formatCurrency(broker.netValue)}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">No buyer data available</p>
-                      )}
-                    </CardContent>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground text-center py-4">No buyer data available</p>
+                        )}
+                      </CardContent>
                   </Card>
 
                   <Card>
@@ -623,25 +631,33 @@ export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote
                         Top Sellers
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      {bandarmologySummary.topSellers.length > 0 ? (
-                        <div className="space-y-2">
-                          {bandarmologySummary.topSellers.slice(0, 5).map((broker, idx) => (
-                            <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                              <div>
-                                <p className="font-medium">{broker.brokerCode}</p>
-                                <p className="text-xs text-muted-foreground">{broker.brokerName}</p>
+                      <CardContent>
+                        {bandarmologySummary.topSellers.length > 0 ? (
+                          <div className="space-y-2">
+                            {bandarmologySummary.topSellers.slice(0, 5).map((broker, idx) => (
+                              <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">{broker.brokerCode}</p>
+                                  {broker.brokerType && (
+                                    <Badge variant="outline" className={`text-xs ${
+                                      broker.brokerType === 'Asing' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' :
+                                      broker.brokerType === 'Pemerintah' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30' :
+                                      'bg-gray-500/10 text-gray-500 border-gray-500/30'
+                                    }`}>
+                                      {broker.brokerType}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-mono text-bearish">{formatCurrency(Math.abs(broker.netValue))}</p>
+                                </div>
                               </div>
-                              <div className="text-right">
-                                <p className="font-mono text-bearish">{formatCurrency(Math.abs(broker.netValue))}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-4">No seller data available</p>
-                      )}
-                    </CardContent>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground text-center py-4">No seller data available</p>
+                        )}
+                      </CardContent>
                   </Card>
                 </div>
 

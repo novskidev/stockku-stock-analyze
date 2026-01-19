@@ -225,16 +225,16 @@ function transformBrokerSummary(response: BrokerSummaryApiResponse): BrokerSumma
   
   for (const b of response.data.broker_summary.brokers_buy) {
     buyMap.set(b.netbs_broker_code, {
-      value: parseFloat(b.bval) || 0,
-      lot: parseFloat(b.blot) || 0,
+      value: Math.abs(parseFloat(b.bval) || 0),
+      lot: Math.abs(parseFloat(b.blot) || 0),
       type: b.type,
     });
   }
   
   for (const s of response.data.broker_summary.brokers_sell) {
     sellMap.set(s.netbs_broker_code, {
-      value: parseFloat(s.sval) || 0,
-      lot: parseFloat(s.slot) || 0,
+      value: Math.abs(parseFloat(s.sval) || 0),
+      lot: Math.abs(parseFloat(s.slot) || 0),
       type: s.type,
     });
   }
@@ -261,17 +261,23 @@ function transformBrokerSummary(response: BrokerSummaryApiResponse): BrokerSumma
   return brokers.sort((a, b) => b.net_value - a.net_value);
 }
 
-function getLastTradingDate(): string {
+function getRecentTradingDates(count: number = 5): string[] {
+  const dates: string[] = [];
   const today = new Date();
-  const day = today.getDay();
   
-  if (day === 0) {
-    today.setDate(today.getDate() - 2);
-  } else if (day === 6) {
-    today.setDate(today.getDate() - 1);
+  let daysBack = 0;
+  while (dates.length < count) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - daysBack);
+    const day = date.getDay();
+    
+    if (day !== 0 && day !== 6) {
+      dates.push(date.toISOString().split('T')[0]);
+    }
+    daysBack++;
   }
   
-  return today.toISOString().split('T')[0];
+  return dates;
 }
 
 export const datasahamApi = {
@@ -304,13 +310,27 @@ export const datasahamApi = {
     return fetchApi<MoverApiResponse>('/movers/net-foreign-sell', undefined, 30).then(transformMovers);
   },
 
-  async getBrokerSummary(symbol: string, date?: string): Promise<BrokerSummary[]> {
-    const targetDate = date || getLastTradingDate();
-    return fetchApi<BrokerSummaryApiResponse>(
-      `/market-detector/broker-summary/${symbol}`,
-      { from: targetDate, to: targetDate },
-      60
-    ).then(transformBrokerSummary);
+  async getBrokerSummary(symbol: string): Promise<BrokerSummary[]> {
+    const dates = getRecentTradingDates(5);
+    
+    for (const targetDate of dates) {
+      try {
+        const response = await fetchApi<BrokerSummaryApiResponse>(
+          `/market-detector/broker-summary/${symbol}`,
+          { from: targetDate, to: targetDate },
+          60
+        );
+        
+        const brokers = transformBrokerSummary(response);
+        if (brokers.length > 0) {
+          return brokers;
+        }
+      } catch {
+        continue;
+      }
+    }
+    
+    return [];
   },
 
   async getStockQuote(symbol: string): Promise<StockQuote | null> {

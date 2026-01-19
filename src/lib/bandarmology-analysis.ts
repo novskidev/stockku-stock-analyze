@@ -36,14 +36,14 @@ export interface BandarmologySummary {
   smartMoneyDirection: 'bullish' | 'bearish' | 'neutral';
 }
 
-const BIG_BROKER_CODES = ['ZP', 'AK', 'IF', 'SQ', 'BB', 'CP', 'DX', 'KI', 'EP', 'DH', 'AF', 'BZ', 'FS', 'AI', 'ID', 'AG', 'EB'];
+const BIG_BROKER_CODES = ['ZP', 'AK', 'YP', 'CC', 'CP', 'DX', 'KI', 'EP', 'DH', 'AF', 'BZ', 'FS', 'AI', 'ID', 'AG', 'EB', 'ML', 'RX', 'DB', 'CS', 'MS'];
 
 export function analyzeBrokerSummary(brokers: BrokerSummary[]): BandarmologySummary {
   const signals: BandarmologySignal[] = [];
   
   const sortedByNetValue = [...brokers].sort((a, b) => b.net_value - a.net_value);
   const topBuyers = sortedByNetValue.filter(b => b.net_value > 0).slice(0, 10);
-  const topSellers = sortedByNetValue.filter(b => b.net_value < 0).slice(-10).reverse();
+  const topSellers = sortedByNetValue.filter(b => b.net_value < 0).slice(0, 10);
 
   const topBuyerFlows: BrokerFlow[] = topBuyers.map(b => ({
     brokerCode: b.broker_code,
@@ -54,7 +54,7 @@ export function analyzeBrokerSummary(brokers: BrokerSummary[]): BandarmologySumm
     sellValue: b.sell_value,
     flow: 'buy' as const,
     intensity: calculateIntensity(b.net_value, b.buy_value + b.sell_value),
-    brokerType: (b as BrokerSummary & { broker_type?: string }).broker_type,
+    brokerType: b.broker_type,
   }));
 
   const topSellerFlows: BrokerFlow[] = topSellers.map(b => ({
@@ -66,10 +66,10 @@ export function analyzeBrokerSummary(brokers: BrokerSummary[]): BandarmologySumm
     sellValue: b.sell_value,
     flow: 'sell' as const,
     intensity: calculateIntensity(Math.abs(b.net_value), b.buy_value + b.sell_value),
-    brokerType: (b as BrokerSummary & { broker_type?: string }).broker_type,
+    brokerType: b.broker_type,
   }));
 
-  const foreignBrokers = brokers.filter(b => (b as BrokerSummary & { broker_type?: string }).broker_type === 'Asing');
+  const foreignBrokers = brokers.filter(b => b.broker_type === 'Asing');
   const foreignNetBuy = foreignBrokers.reduce((sum, b) => sum + (b.net_value > 0 ? b.net_value : 0), 0);
   const foreignNetSell = foreignBrokers.reduce((sum, b) => sum + (b.net_value < 0 ? Math.abs(b.net_value) : 0), 0);
   const foreignNetValue = foreignBrokers.reduce((sum, b) => sum + b.net_value, 0);
@@ -100,7 +100,7 @@ export function analyzeBrokerSummary(brokers: BrokerSummary[]): BandarmologySumm
     }
   }
 
-  const bigBrokers = brokers.filter(b => BIG_BROKER_CODES.includes(b.broker_code));
+  const bigBrokers = brokers.filter(b => BIG_BROKER_CODES.includes(b.broker_code) || b.broker_type === 'Asing');
   const bigBrokerNetValue = bigBrokers.reduce((sum, b) => sum + b.net_value, 0);
   
   let smartMoneyDirection: 'bullish' | 'bearish' | 'neutral' = 'neutral';
@@ -120,30 +120,29 @@ export function analyzeBrokerSummary(brokers: BrokerSummary[]): BandarmologySumm
     });
   }
 
-  const totalNetValue = brokers.reduce((sum, b) => sum + b.net_value, 0);
   const totalVolume = brokers.reduce((sum, b) => sum + b.buy_value + b.sell_value, 0);
   
-  const concentrationRatio = topBuyers.length > 0 
+  const buyerConcentration = topBuyers.length > 0 
     ? topBuyers.reduce((sum, b) => sum + b.net_value, 0) / (totalVolume || 1)
     : 0;
 
-  if (concentrationRatio > 0.1) {
+  if (buyerConcentration > 0.05) {
     signals.push({
       type: 'accumulation',
-      strength: Math.min(0.85, concentrationRatio * 5),
-      description: `High buyer concentration: ${(concentrationRatio * 100).toFixed(1)}%`,
+      strength: Math.min(0.85, buyerConcentration * 10),
+      description: `High buyer concentration: ${(buyerConcentration * 100).toFixed(1)}%`,
     });
   }
 
-  const distributionRatio = topSellers.length > 0
+  const sellerConcentration = topSellers.length > 0
     ? Math.abs(topSellers.reduce((sum, b) => sum + b.net_value, 0)) / (totalVolume || 1)
     : 0;
 
-  if (distributionRatio > 0.1) {
+  if (sellerConcentration > 0.05) {
     signals.push({
       type: 'distribution',
-      strength: Math.min(0.85, distributionRatio * 5),
-      description: `High seller concentration: ${(distributionRatio * 100).toFixed(1)}%`,
+      strength: Math.min(0.85, sellerConcentration * 10),
+      description: `High seller concentration: ${(sellerConcentration * 100).toFixed(1)}%`,
     });
   }
 
@@ -196,71 +195,4 @@ function formatCurrency(value: number): string {
   if (value >= 1e9) return `Rp ${(value / 1e9).toFixed(2)}B`;
   if (value >= 1e6) return `Rp ${(value / 1e6).toFixed(2)}M`;
   return `Rp ${value.toLocaleString()}`;
-}
-
-export function detectAccumulationPattern(
-  brokerHistory: BrokerSummary[][],
-  days: number = 5
-): { isAccumulating: boolean; confidence: number; pattern: string } {
-  if (brokerHistory.length < days) {
-    return { isAccumulating: false, confidence: 0, pattern: 'Insufficient data' };
-  }
-
-  const recentHistory = brokerHistory.slice(-days);
-  let consecutiveBuyDays = 0;
-  let totalNetBuy = 0;
-
-  for (const dayBrokers of recentHistory) {
-    const dayNetValue = dayBrokers.reduce((sum, b) => sum + b.net_value, 0);
-    if (dayNetValue > 0) {
-      consecutiveBuyDays++;
-      totalNetBuy += dayNetValue;
-    }
-  }
-
-  const isAccumulating = consecutiveBuyDays >= Math.ceil(days * 0.6);
-  const confidence = (consecutiveBuyDays / days) * 100;
-
-  let pattern = 'Neutral';
-  if (consecutiveBuyDays === days) {
-    pattern = 'Strong accumulation - all days positive';
-  } else if (consecutiveBuyDays >= days * 0.8) {
-    pattern = 'Consistent accumulation pattern';
-  } else if (consecutiveBuyDays >= days * 0.6) {
-    pattern = 'Moderate accumulation tendency';
-  } else if (consecutiveBuyDays <= days * 0.2) {
-    pattern = 'Distribution pattern detected';
-  }
-
-  return { isAccumulating, confidence, pattern };
-}
-
-export function analyzeForeignInstitutionalFlow(
-  brokers: BrokerSummary[]
-): {
-  institutional: { netValue: number; trend: string };
-  retail: { netValue: number; trend: string };
-  ratio: number;
-} {
-  const institutionalBrokers = brokers.filter(b => 
-    FOREIGN_BROKER_CODES.includes(b.broker_code) || BIG_BROKER_CODES.includes(b.broker_code)
-  );
-  const retailBrokers = brokers.filter(b => 
-    !FOREIGN_BROKER_CODES.includes(b.broker_code) && !BIG_BROKER_CODES.includes(b.broker_code)
-  );
-
-  const institutionalNet = institutionalBrokers.reduce((sum, b) => sum + b.net_value, 0);
-  const retailNet = retailBrokers.reduce((sum, b) => sum + b.net_value, 0);
-
-  const institutionalTrend = institutionalNet > 0 ? 'Buying' : institutionalNet < 0 ? 'Selling' : 'Neutral';
-  const retailTrend = retailNet > 0 ? 'Buying' : retailNet < 0 ? 'Selling' : 'Neutral';
-
-  const totalAbsNet = Math.abs(institutionalNet) + Math.abs(retailNet);
-  const ratio = totalAbsNet > 0 ? Math.abs(institutionalNet) / totalAbsNet : 0.5;
-
-  return {
-    institutional: { netValue: institutionalNet, trend: institutionalTrend },
-    retail: { netValue: retailNet, trend: retailTrend },
-    ratio,
-  };
 }
