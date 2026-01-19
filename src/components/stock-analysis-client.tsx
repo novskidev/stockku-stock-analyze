@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { StockProfile, BrokerSummary, TopMover } from '@/lib/datasaham-api';
+import { StockProfile, BrokerSummary, TopMover, BandarAnalysis } from '@/lib/datasaham-api';
 import { 
   OHLCV, calculateTechnicalSummary, TechnicalSummary, TechnicalSignal 
 } from '@/lib/technical-analysis';
@@ -26,6 +26,7 @@ interface StockAnalysisClientProps {
   profile: StockProfile | null;
   brokerSummary: BrokerSummary[];
   stockQuote: TopMover | null;
+  bandarAnalysis: BandarAnalysis;
 }
 
 function generateMockOHLCV(basePrice: number = 10000, days: number = 100): OHLCV[] {
@@ -140,7 +141,7 @@ function formatPrice(price: number): string {
   return price.toLocaleString('id-ID');
 }
 
-export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote }: StockAnalysisClientProps) {
+export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote, bandarAnalysis }: StockAnalysisClientProps) {
   const currentPrice = stockQuote?.last_price || 0;
   const priceChange = stockQuote?.change || 0;
   const priceChangePercent = stockQuote?.change_percentage || 0;
@@ -530,177 +531,424 @@ export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote
           </TabsContent>
 
           <TabsContent value="bandarmology" className="space-y-4">
-            {bandarmologySummary ? (
-              <>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <Card>
+              {bandarAnalysis.accumulation && (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <Card className={`${
+                    bandarAnalysis.accumulation.status === 'ACCUMULATION' ? 'bg-bullish/10 border-bullish/30' :
+                    bandarAnalysis.accumulation.status === 'DISTRIBUTION' ? 'bg-bearish/10 border-bearish/30' : 'bg-neutral/10'
+                  }`}>
                     <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Users className="w-8 h-8 text-primary" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Smart Money</p>
-                          <p className={`text-lg font-bold capitalize ${
-                            bandarmologySummary.smartMoneyDirection === 'bullish' ? 'text-bullish' :
-                            bandarmologySummary.smartMoneyDirection === 'bearish' ? 'text-bearish' : 'text-neutral'
-                          }`}>
-                            {bandarmologySummary.smartMoneyDirection}
+                      <div className="flex items-center gap-2 mb-2">
+                        <Target className="w-5 h-5" />
+                        <span className="text-sm font-medium">Accumulation</span>
+                      </div>
+                      <p className={`text-2xl font-bold ${
+                        bandarAnalysis.accumulation.status === 'ACCUMULATION' ? 'text-bullish' :
+                        bandarAnalysis.accumulation.status === 'DISTRIBUTION' ? 'text-bearish' : ''
+                      }`}>
+                        {bandarAnalysis.accumulation.status}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Score: {bandarAnalysis.accumulation.accumulation_score}/10 | Confidence: {bandarAnalysis.accumulation.confidence}%
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {bandarAnalysis.distribution && (
+                    <Card className={`${
+                      bandarAnalysis.distribution.status === 'DISTRIBUTION' ? 'bg-bearish/10 border-bearish/30' : 'bg-neutral/10'
+                    }`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingDown className="w-5 h-5" />
+                          <span className="text-sm font-medium">Distribution</span>
+                        </div>
+                        <p className={`text-2xl font-bold ${
+                          bandarAnalysis.distribution.status === 'DISTRIBUTION' ? 'text-bearish' : ''
+                        }`}>
+                          {bandarAnalysis.distribution.status}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Score: {bandarAnalysis.distribution.distribution_score}/10 | Risk: {bandarAnalysis.distribution.risk_level}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {bandarAnalysis.smartMoney && (
+                    <Card className={`${
+                      bandarAnalysis.smartMoney.flow_direction === 'INFLOW' ? 'bg-bullish/10 border-bullish/30' :
+                      bandarAnalysis.smartMoney.flow_direction === 'OUTFLOW' ? 'bg-bearish/10 border-bearish/30' : 'bg-neutral/10'
+                    }`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <DollarSign className="w-5 h-5" />
+                          <span className="text-sm font-medium">Smart Money</span>
+                        </div>
+                        <p className={`text-2xl font-bold ${
+                          bandarAnalysis.smartMoney.flow_direction === 'INFLOW' ? 'text-bullish' :
+                          bandarAnalysis.smartMoney.flow_direction === 'OUTFLOW' ? 'text-bearish' : ''
+                        }`}>
+                          {bandarAnalysis.smartMoney.flow_direction}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Score: {bandarAnalysis.smartMoney.smart_money_score}/10 | {bandarAnalysis.smartMoney.recommendation}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {bandarAnalysis.pumpDump && (
+                    <Card className={`${
+                      bandarAnalysis.pumpDump.status === 'SAFE' ? 'bg-bullish/10 border-bullish/30' :
+                      bandarAnalysis.pumpDump.status === 'WARNING' ? 'bg-yellow-500/10 border-yellow-500/30' :
+                      'bg-bearish/10 border-bearish/30'
+                    }`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="w-5 h-5" />
+                          <span className="text-sm font-medium">Pump & Dump</span>
+                        </div>
+                        <p className={`text-2xl font-bold ${
+                          bandarAnalysis.pumpDump.status === 'SAFE' ? 'text-bullish' :
+                          bandarAnalysis.pumpDump.status === 'WARNING' ? 'text-yellow-500' : 'text-bearish'
+                        }`}>
+                          {bandarAnalysis.pumpDump.status}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Risk: {bandarAnalysis.pumpDump.risk_score}/10 | {bandarAnalysis.pumpDump.recommendation}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {bandarAnalysis.accumulation && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Target className="w-5 h-5 text-primary" />
+                        Accumulation Analysis
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Top 5 Brokers</p>
+                        <div className="flex flex-wrap gap-2">
+                          {bandarAnalysis.accumulation.indicators.broker_concentration.top_5_brokers.map((broker, idx) => (
+                            <Badge key={idx} variant="outline">{broker}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 rounded-lg bg-secondary">
+                          <p className="text-xs text-muted-foreground">Concentration</p>
+                          <p className="text-lg font-bold">{bandarAnalysis.accumulation.indicators.broker_concentration.concentration_percentage}%</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-secondary">
+                          <p className="text-xs text-muted-foreground">Total Value</p>
+                          <p className="text-lg font-bold">{formatCurrency(bandarAnalysis.accumulation.indicators.broker_concentration.total_value)}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-secondary">
+                          <p className="text-xs text-muted-foreground">Buyers vs Sellers</p>
+                          <p className="text-lg font-bold">
+                            <span className="text-bullish">{bandarAnalysis.accumulation.indicators.broker_concentration.total_buyer}</span>
+                            {' / '}
+                            <span className="text-bearish">{bandarAnalysis.accumulation.indicators.broker_concentration.total_seller}</span>
                           </p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-secondary">
+                          <p className="text-xs text-muted-foreground">Acc Days</p>
+                          <p className="text-lg font-bold">{bandarAnalysis.accumulation.indicators.accumulation_days} hari</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Entry Zone</p>
+                        <div className="flex justify-between items-center p-3 rounded-lg bg-secondary">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Ideal Price</p>
+                            <p className="font-mono font-bold text-bullish">{formatPrice(bandarAnalysis.accumulation.entry_zone.ideal_price)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Max Price</p>
+                            <p className="font-mono font-bold text-yellow-500">{formatPrice(bandarAnalysis.accumulation.entry_zone.max_price)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Current</p>
+                            <p className="font-mono font-bold">{formatPrice(bandarAnalysis.accumulation.entry_zone.current_price)}</p>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                  
-                  {bandarmologySummary.foreignFlow && (
+
+                  {bandarAnalysis.smartMoney && (
                     <Card>
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
-                          <DollarSign className={`w-8 h-8 ${
-                            bandarmologySummary.foreignFlow.trend === 'inflow' ? 'text-bullish' :
-                            bandarmologySummary.foreignFlow.trend === 'outflow' ? 'text-bearish' : 'text-neutral'
-                          }`} />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Foreign Flow</p>
-                            <p className={`text-lg font-bold capitalize ${
-                              bandarmologySummary.foreignFlow.trend === 'inflow' ? 'text-bullish' :
-                              bandarmologySummary.foreignFlow.trend === 'outflow' ? 'text-bearish' : 'text-neutral'
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <DollarSign className="w-5 h-5 text-primary" />
+                          Smart Money Flow
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-3 rounded-lg bg-secondary">
+                            <p className="text-xs text-muted-foreground">Foreign 7D</p>
+                            <p className={`text-lg font-bold ${
+                              bandarAnalysis.smartMoney.analysis.foreign_investors.trend.includes('BUY') ? 'text-bullish' : 'text-bearish'
                             }`}>
-                              {formatCurrency(Math.abs(bandarmologySummary.foreignFlow.netValue))}
+                              {bandarAnalysis.smartMoney.analysis.foreign_investors.net_flow_7d}
                             </p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-secondary">
+                            <p className="text-xs text-muted-foreground">Foreign 30D</p>
+                            <p className={`text-lg font-bold ${
+                              bandarAnalysis.smartMoney.analysis.foreign_investors.trend.includes('BUY') ? 'text-bullish' : 'text-bearish'
+                            }`}>
+                              {bandarAnalysis.smartMoney.analysis.foreign_investors.net_flow_30d}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">Institutional Brokers</p>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {bandarAnalysis.smartMoney.analysis.institutional_brokers.top_institutions.map((inst, idx) => (
+                              <Badge key={idx} variant="outline" className="bg-blue-500/10 text-blue-500">{inst}</Badge>
+                            ))}
+                          </div>
+                          <p className="text-sm">
+                            Position: <span className={bandarAnalysis.smartMoney.analysis.institutional_brokers.net_position === 'BUY' ? 'text-bullish' : 'text-bearish'}>
+                              {bandarAnalysis.smartMoney.analysis.institutional_brokers.net_position}
+                            </span>
+                            {' | '}Value: {bandarAnalysis.smartMoney.analysis.institutional_brokers.total_value}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">Insider Activity</p>
+                          <div className="space-y-1">
+                            {bandarAnalysis.smartMoney.analysis.insider_activity.recent_activity.slice(0, 3).map((activity, idx) => (
+                              <p key={idx} className="text-xs bg-secondary p-2 rounded">{activity}</p>
+                            ))}
                           </div>
                         </div>
                       </CardContent>
                     </Card>
                   )}
-                  
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Activity className="w-8 h-8 text-chart-2" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Market Signal</p>
-                          <p className="text-lg font-bold capitalize text-chart-2">
-                            {bandarmologySummary.overallSignal.replace(/_/g, ' ')}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
+              )}
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-bullish" />
-                        Top Buyers
-                      </CardTitle>
-                    </CardHeader>
-                      <CardContent>
-                        {bandarmologySummary.topBuyers.length > 0 ? (
-                          <div className="space-y-2">
-                            {bandarmologySummary.topBuyers.slice(0, 5).map((broker, idx) => (
-                              <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium">{broker.brokerCode}</p>
-                                  {broker.brokerType && (
-                                    <Badge variant="outline" className={`text-xs ${
-                                      broker.brokerType === 'Asing' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' :
-                                      broker.brokerType === 'Pemerintah' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30' :
-                                      'bg-gray-500/10 text-gray-500 border-gray-500/30'
-                                    }`}>
-                                      {broker.brokerType}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-mono text-bullish">{formatCurrency(broker.netValue)}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground text-center py-4">No buyer data available</p>
-                        )}
-                      </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <TrendingDown className="w-5 h-5 text-bearish" />
-                        Top Sellers
-                      </CardTitle>
-                    </CardHeader>
-                      <CardContent>
-                        {bandarmologySummary.topSellers.length > 0 ? (
-                          <div className="space-y-2">
-                            {bandarmologySummary.topSellers.slice(0, 5).map((broker, idx) => (
-                              <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium">{broker.brokerCode}</p>
-                                  {broker.brokerType && (
-                                    <Badge variant="outline" className={`text-xs ${
-                                      broker.brokerType === 'Asing' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' :
-                                      broker.brokerType === 'Pemerintah' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30' :
-                                      'bg-gray-500/10 text-gray-500 border-gray-500/30'
-                                    }`}>
-                                      {broker.brokerType}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-mono text-bearish">{formatCurrency(Math.abs(broker.netValue))}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground text-center py-4">No seller data available</p>
-                        )}
-                      </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
+              {bandarAnalysis.pumpDump && bandarAnalysis.pumpDump.warnings.length > 0 && (
+                <Card className="border-yellow-500/30 bg-yellow-500/5">
                   <CardHeader>
-                    <CardTitle className="text-lg">Bandarmology Signals</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2 text-yellow-500">
+                      <AlertTriangle className="w-5 h-5" />
+                      Pump & Dump Warnings
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {bandarmologySummary.signals.map((signal, idx) => (
-                        <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                          <div className="flex items-center gap-2">
-                            {signal.type === 'accumulation' ? (
-                              <CheckCircle className="w-4 h-4 text-bullish" />
-                            ) : signal.type === 'distribution' ? (
-                              <XCircle className="w-4 h-4 text-bearish" />
-                            ) : (
-                              <Info className="w-4 h-4 text-neutral" />
-                            )}
-                            <span>{signal.description}</span>
-                          </div>
-                          <Badge className={
-                            signal.type === 'accumulation' ? 'bg-bullish/20 text-bullish' :
-                            signal.type === 'distribution' ? 'bg-bearish/20 text-bearish' : 'bg-neutral/20 text-neutral'
-                          }>
-                            {(signal.strength * 100).toFixed(0)}%
-                          </Badge>
+                      {bandarAnalysis.pumpDump.warnings.map((warning, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-2 rounded bg-yellow-500/10">
+                          <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                          <span className="text-sm">{warning}</span>
                         </div>
                       ))}
                     </div>
+                    <div className="grid grid-cols-4 gap-4 mt-4">
+                      <div className="p-3 rounded-lg bg-secondary">
+                        <p className="text-xs text-muted-foreground">Price Surge</p>
+                        <p className="text-lg font-bold">{bandarAnalysis.pumpDump.pump_indicators.price_surge}%</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-secondary">
+                        <p className="text-xs text-muted-foreground">Volume Surge</p>
+                        <p className="text-lg font-bold">{bandarAnalysis.pumpDump.pump_indicators.volume_surge}%</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-secondary">
+                        <p className="text-xs text-muted-foreground">Broker Conc.</p>
+                        <p className="text-lg font-bold">{bandarAnalysis.pumpDump.pump_indicators.broker_concentration}%</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-secondary">
+                        <p className="text-xs text-muted-foreground">Retail FOMO</p>
+                        <p className="text-lg font-bold">{bandarAnalysis.pumpDump.pump_indicators.retail_fomo_score}</p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              </>
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium">No Broker Data Available</p>
-                  <p className="text-sm text-muted-foreground">Broker summary data is not available for this stock</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+              )}
+
+              {bandarmologySummary ? (
+                <>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <Users className="w-8 h-8 text-primary" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Smart Money</p>
+                            <p className={`text-lg font-bold capitalize ${
+                              bandarmologySummary.smartMoneyDirection === 'bullish' ? 'text-bullish' :
+                              bandarmologySummary.smartMoneyDirection === 'bearish' ? 'text-bearish' : 'text-neutral'
+                            }`}>
+                              {bandarmologySummary.smartMoneyDirection}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    {bandarmologySummary.foreignFlow && (
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-3">
+                            <DollarSign className={`w-8 h-8 ${
+                              bandarmologySummary.foreignFlow.trend === 'inflow' ? 'text-bullish' :
+                              bandarmologySummary.foreignFlow.trend === 'outflow' ? 'text-bearish' : 'text-neutral'
+                            }`} />
+                            <div>
+                              <p className="text-sm text-muted-foreground">Foreign Flow</p>
+                              <p className={`text-lg font-bold capitalize ${
+                                bandarmologySummary.foreignFlow.trend === 'inflow' ? 'text-bullish' :
+                                bandarmologySummary.foreignFlow.trend === 'outflow' ? 'text-bearish' : 'text-neutral'
+                              }`}>
+                                {formatCurrency(Math.abs(bandarmologySummary.foreignFlow.netValue))}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <Activity className="w-8 h-8 text-chart-2" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Market Signal</p>
+                            <p className="text-lg font-bold capitalize text-chart-2">
+                              {bandarmologySummary.overallSignal.replace(/_/g, ' ')}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-bullish" />
+                          Top Buyers
+                        </CardTitle>
+                      </CardHeader>
+                        <CardContent>
+                          {bandarmologySummary.topBuyers.length > 0 ? (
+                            <div className="space-y-2">
+                              {bandarmologySummary.topBuyers.slice(0, 5).map((broker, idx) => (
+                                <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium">{broker.brokerCode}</p>
+                                    {broker.brokerType && (
+                                      <Badge variant="outline" className={`text-xs ${
+                                        broker.brokerType === 'Asing' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' :
+                                        broker.brokerType === 'Pemerintah' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30' :
+                                        'bg-gray-500/10 text-gray-500 border-gray-500/30'
+                                      }`}>
+                                        {broker.brokerType}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-mono text-bullish">{formatCurrency(broker.netValue)}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground text-center py-4">No buyer data available</p>
+                          )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <TrendingDown className="w-5 h-5 text-bearish" />
+                          Top Sellers
+                        </CardTitle>
+                      </CardHeader>
+                        <CardContent>
+                          {bandarmologySummary.topSellers.length > 0 ? (
+                            <div className="space-y-2">
+                              {bandarmologySummary.topSellers.slice(0, 5).map((broker, idx) => (
+                                <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium">{broker.brokerCode}</p>
+                                    {broker.brokerType && (
+                                      <Badge variant="outline" className={`text-xs ${
+                                        broker.brokerType === 'Asing' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' :
+                                        broker.brokerType === 'Pemerintah' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30' :
+                                        'bg-gray-500/10 text-gray-500 border-gray-500/30'
+                                      }`}>
+                                        {broker.brokerType}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-mono text-bearish">{formatCurrency(Math.abs(broker.netValue))}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground text-center py-4">No seller data available</p>
+                          )}
+                        </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Bandarmology Signals</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {bandarmologySummary.signals.map((signal, idx) => (
+                          <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                            <div className="flex items-center gap-2">
+                              {signal.type === 'accumulation' ? (
+                                <CheckCircle className="w-4 h-4 text-bullish" />
+                              ) : signal.type === 'distribution' ? (
+                                <XCircle className="w-4 h-4 text-bearish" />
+                              ) : (
+                                <Info className="w-4 h-4 text-neutral" />
+                              )}
+                              <span>{signal.description}</span>
+                            </div>
+                            <Badge className={
+                              signal.type === 'accumulation' ? 'bg-bullish/20 text-bullish' :
+                              signal.type === 'distribution' ? 'bg-bearish/20 text-bearish' : 'bg-neutral/20 text-neutral'
+                            }>
+                              {(signal.strength * 100).toFixed(0)}%
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : !bandarAnalysis.accumulation && (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-lg font-medium">No Broker Data Available</p>
+                    <p className="text-sm text-muted-foreground">Broker summary data is not available for this stock</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
 
           <TabsContent value="profile" className="space-y-4">
             {profile ? (

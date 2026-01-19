@@ -7,12 +7,13 @@ interface PageProps {
 
 async function getStockData(symbol: string) {
   try {
-    const [profile, brokerSummary, gainers, losers, mostActive] = await Promise.all([
+    const [profile, brokerSummary, gainers, losers, mostActive, bandarAnalysis] = await Promise.all([
       datasahamApi.getStockProfile(symbol).catch(() => null),
       datasahamApi.getBrokerSummary(symbol).catch(() => []),
       datasahamApi.getTopGainers().catch(() => []),
       datasahamApi.getTopLosers().catch(() => []),
       datasahamApi.getMostActive().catch(() => []),
+      datasahamApi.getBandarAnalysis(symbol).catch(() => ({ accumulation: null, distribution: null, smartMoney: null, pumpDump: null })),
     ]);
 
     const allStocks = [...gainers, ...losers, ...mostActive];
@@ -22,6 +23,7 @@ async function getStockData(symbol: string) {
       profile,
       brokerSummary,
       stockQuote,
+      bandarAnalysis,
     };
   } catch {
     return null;
@@ -40,6 +42,7 @@ export default async function StockPage({ params }: PageProps) {
       profile={data?.profile || null}
       brokerSummary={data?.brokerSummary || []}
       stockQuote={data?.stockQuote || null}
+      bandarAnalysis={data?.bandarAnalysis || { accumulation: null, distribution: null, smartMoney: null, pumpDump: null }}
     />
   );
 }

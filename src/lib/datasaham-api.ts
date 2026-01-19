@@ -203,6 +203,155 @@ export interface StockQuote {
   net_foreign_sell: number;
 }
 
+export interface BandarAccumulation {
+  symbol: string;
+  company_name: string;
+  analysis_date: string;
+  accumulation_score: number;
+  status: 'ACCUMULATION' | 'DISTRIBUTION' | 'NEUTRAL';
+  confidence: number;
+  indicators: {
+    broker_concentration: {
+      top_5_brokers: string[];
+      concentration_percentage: number;
+      is_suspicious: boolean;
+      score: number;
+      bandar_status: string;
+      total_buyer: number;
+      total_seller: number;
+      net_flow: number;
+      total_value: number;
+    };
+    volume_pattern: {
+      avg_volume_increase: number;
+      price_stability: string;
+      volume_price_divergence: boolean;
+      score: number;
+    };
+    foreign_flow: {
+      net_foreign_flow: string;
+      buy_days: number;
+      sell_days: number;
+      consistency_score: number;
+      trend: string;
+    };
+    accumulation_days: number;
+    estimated_accumulation_value: string;
+  };
+  signals: string[];
+  recommendation: string;
+  entry_zone: {
+    ideal_price: number;
+    max_price: number;
+    current_price: number;
+  };
+  risk_level: string;
+  timeframe_analysis: {
+    short_term: string;
+    medium_term: string;
+    long_term: string;
+  };
+}
+
+export interface BandarDistribution {
+  symbol: string;
+  company_name: string;
+  analysis_date: string;
+  distribution_score: number;
+  status: string;
+  confidence: number;
+  indicators: {
+    broker_exit_pattern: {
+      top_brokers_selling: string[];
+      selling_percentage: number;
+      days_selling: number;
+      score: number;
+      bandar_status: string;
+      total_buyer: number;
+      total_seller: number;
+      net_flow: number;
+    };
+    price_volume_divergence: {
+      price_increase: number;
+      volume_decrease: number;
+      divergence_detected: boolean;
+    };
+    foreign_flow: {
+      net_foreign_sell: string;
+      consecutive_sell_days: number;
+    };
+  };
+  signals: string[];
+  recommendation: string;
+  risk_level: string;
+}
+
+export interface BandarSmartMoney {
+  symbol: string;
+  company_name: string;
+  analysis_date: string;
+  smart_money_score: number;
+  flow_direction: 'INFLOW' | 'OUTFLOW' | 'NEUTRAL';
+  analysis: {
+    foreign_investors: {
+      net_flow_7d: string;
+      net_flow_30d: string;
+      trend: string;
+      consistency_score: number;
+    };
+    institutional_brokers: {
+      top_institutions: string[];
+      net_position: string;
+      total_value: string;
+      avg_price: number;
+    };
+    insider_activity: {
+      major_holders_buying: number;
+      major_holders_selling: number;
+      net_insider_flow: string;
+      recent_activity: string[];
+    };
+  };
+  momentum: {
+    short_term: string;
+    medium_term: string;
+    long_term: string;
+  };
+  recommendation: string;
+  confidence: number;
+}
+
+export interface BandarPumpDump {
+  symbol: string;
+  company_name: string;
+  analysis_date: string;
+  risk_score: number;
+  status: 'SAFE' | 'WARNING' | 'DANGER' | 'PUMP_DETECTED' | 'DUMP_DETECTED';
+  warnings: string[];
+  pump_indicators: {
+    price_surge: number;
+    volume_surge: number;
+    broker_concentration: number;
+    retail_fomo_score: number;
+    fundamental_support: boolean;
+  };
+  historical_pattern: {
+    similar_pumps: number;
+    avg_dump_percentage: number;
+    avg_days_to_dump: number;
+  };
+  recommendation: string;
+  safe_entry_price: number | null;
+  confidence: number;
+}
+
+export interface BandarAnalysis {
+  accumulation: BandarAccumulation | null;
+  distribution: BandarDistribution | null;
+  smartMoney: BandarSmartMoney | null;
+  pumpDump: BandarPumpDump | null;
+}
+
 function transformMovers(response: MoverApiResponse): TopMover[] {
   return response.data.mover_list.map(item => ({
     symbol: item.stock_detail.code,
@@ -334,35 +483,77 @@ export const datasahamApi = {
   },
 
   async getStockQuote(symbol: string): Promise<StockQuote | null> {
-    try {
-      const gainers = await this.getTopGainers();
-      const losers = await this.getTopLosers();
-      const mostActive = await this.getMostActive();
-      
-      const allStocks = [...gainers, ...losers, ...mostActive];
-      const stock = allStocks.find(s => s.symbol === symbol);
-      
-      if (stock) {
-        return {
-          symbol: stock.symbol,
-          company_name: stock.company_name,
-          price: stock.last_price,
-          change: stock.change,
-          change_percentage: stock.change_percentage,
-          volume: stock.volume,
-          value: stock.value,
-          open: stock.last_price - stock.change,
-          high: stock.last_price,
-          low: stock.last_price,
-          prev_close: stock.last_price - stock.change,
-          net_foreign_buy: stock.net_foreign_buy,
-          net_foreign_sell: stock.net_foreign_sell,
-        };
+      try {
+        const gainers = await this.getTopGainers();
+        const losers = await this.getTopLosers();
+        const mostActive = await this.getMostActive();
+        
+        const allStocks = [...gainers, ...losers, ...mostActive];
+        const stock = allStocks.find(s => s.symbol === symbol);
+        
+        if (stock) {
+          return {
+            symbol: stock.symbol,
+            company_name: stock.company_name,
+            price: stock.last_price,
+            change: stock.change,
+            change_percentage: stock.change_percentage,
+            volume: stock.volume,
+            value: stock.value,
+            open: stock.last_price - stock.change,
+            high: stock.last_price,
+            low: stock.last_price,
+            prev_close: stock.last_price - stock.change,
+            net_foreign_buy: stock.net_foreign_buy,
+            net_foreign_sell: stock.net_foreign_sell,
+          };
+        }
+        
+        return null;
+      } catch {
+        return null;
       }
-      
-      return null;
+    },
+
+  async getBandarAccumulation(symbol: string): Promise<BandarAccumulation | null> {
+    try {
+      return await fetchApi<BandarAccumulation>(`/analysis/bandar/accumulation/${symbol}`, undefined, 60);
     } catch {
       return null;
     }
+  },
+
+  async getBandarDistribution(symbol: string): Promise<BandarDistribution | null> {
+    try {
+      return await fetchApi<BandarDistribution>(`/analysis/bandar/distribution/${symbol}`, undefined, 60);
+    } catch {
+      return null;
+    }
+  },
+
+  async getBandarSmartMoney(symbol: string): Promise<BandarSmartMoney | null> {
+    try {
+      return await fetchApi<BandarSmartMoney>(`/analysis/bandar/smart-money/${symbol}`, undefined, 60);
+    } catch {
+      return null;
+    }
+  },
+
+  async getBandarPumpDump(symbol: string): Promise<BandarPumpDump | null> {
+    try {
+      return await fetchApi<BandarPumpDump>(`/analysis/bandar/pump-dump/${symbol}`, undefined, 60);
+    } catch {
+      return null;
+    }
+  },
+
+  async getBandarAnalysis(symbol: string): Promise<BandarAnalysis> {
+    const [accumulation, distribution, smartMoney, pumpDump] = await Promise.all([
+      this.getBandarAccumulation(symbol),
+      this.getBandarDistribution(symbol),
+      this.getBandarSmartMoney(symbol),
+      this.getBandarPumpDump(symbol),
+    ]);
+    return { accumulation, distribution, smartMoney, pumpDump };
   },
 };
