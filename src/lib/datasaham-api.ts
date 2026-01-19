@@ -8,7 +8,7 @@ interface ApiResponse<T> {
   message?: string;
 }
 
-async function fetchApi<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
+async function fetchApi<T>(endpoint: string, params?: Record<string, string>, revalidate: number = 30): Promise<T> {
   const url = new URL(`${API_BASE}${endpoint}`);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -20,7 +20,35 @@ async function fetchApi<T>(endpoint: string, params?: Record<string, string>): P
     headers: {
       'x-api-key': API_KEY,
     },
-    next: { revalidate: 60 },
+    next: { revalidate },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const result: ApiResponse<T> = await response.json();
+  
+  if (!result.success) {
+    throw new Error(result.error || 'API request failed');
+  }
+
+  return result.data as T;
+}
+
+export async function fetchApiClient<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
+  const url = new URL(`${API_BASE}${endpoint}`);
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      url.searchParams.append(key, value);
+    });
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      'x-api-key': API_KEY,
+    },
+    cache: 'no-store',
   });
 
   if (!response.ok) {
@@ -83,6 +111,8 @@ export interface TopMover {
   change_percentage: number;
   volume: number;
   value: number;
+  net_foreign_buy: number;
+  net_foreign_sell: number;
 }
 
 interface MoverApiItem {
@@ -91,6 +121,8 @@ interface MoverApiItem {
   change: { value: number; percentage: number };
   value: { raw: number };
   volume: { raw: number };
+  net_foreign_buy?: { raw: number };
+  net_foreign_sell?: { raw: number };
 }
 
 interface MoverApiResponse {
@@ -99,18 +131,48 @@ interface MoverApiResponse {
   };
 }
 
-export interface SectorPerformance {
-  sector_name: string;
-  change_percentage: number;
-  market_cap: number;
+export interface BrokerSummaryItem {
+  broker_code: string;
+  broker_type: string;
+  buy_value: number;
+  sell_value: number;
+  net_value: number;
+  buy_lot: number;
+  sell_lot: number;
+  buy_avg_price: number;
 }
 
-export interface GlobalIndex {
-  name: string;
-  symbol: string;
-  last: number;
-  change: number;
-  change_percentage: number;
+interface BrokerSummaryApiResponse {
+  message: string;
+  data: {
+    bandar_detector: {
+      average: number;
+      broker_accdist: string;
+      total_buyer: number;
+      total_seller: number;
+      value: number;
+      volume: number;
+    };
+    broker_summary: {
+      brokers_buy: Array<{
+        netbs_broker_code: string;
+        type: string;
+        bval: string;
+        blot: string;
+        netbs_buy_avg_price: string;
+      }>;
+      brokers_sell: Array<{
+        netbs_broker_code: string;
+        type: string;
+        sval: string;
+        slot: string;
+        netbs_sell_avg_price: string;
+      }>;
+      symbol: string;
+    };
+    from: string;
+    to: string;
+  };
 }
 
 export interface BrokerSummary {
@@ -122,28 +184,23 @@ export interface BrokerSummary {
   buy_volume: number;
   sell_volume: number;
   net_volume: number;
+  broker_type: string;
 }
 
-export interface CalendarEvent {
-  company_symbol: string;
-  stocksplit_cumdate: string;
-  stocksplit_exdate: string;
-  stocksplit_paymentdate: string;
-  sahambonus_ratio: string;
-}
-
-export interface FinancialData {
-  currency: string[];
-  default_currency: string;
-  html_report: string;
-}
-
-export interface TrendingStock {
+export interface StockQuote {
   symbol: string;
   company_name: string;
-  last_price: number;
+  price: number;
   change: number;
   change_percentage: number;
+  volume: number;
+  value: number;
+  open: number;
+  high: number;
+  low: number;
+  prev_close: number;
+  net_foreign_buy: number;
+  net_foreign_sell: number;
 }
 
 function transformMovers(response: MoverApiResponse): TopMover[] {
@@ -155,67 +212,137 @@ function transformMovers(response: MoverApiResponse): TopMover[] {
     change_percentage: item.change.percentage,
     volume: item.volume.raw,
     value: item.value.raw,
+    net_foreign_buy: item.net_foreign_buy?.raw || 0,
+    net_foreign_sell: item.net_foreign_sell?.raw || 0,
   }));
+}
+
+function transformBrokerSummary(response: BrokerSummaryApiResponse): BrokerSummary[] {
+  const brokers: BrokerSummary[] = [];
+  
+  const buyMap = new Map<string, { value: number; lot: number; type: string }>();
+  const sellMap = new Map<string, { value: number; lot: number; type: string }>();
+  
+  for (const b of response.data.broker_summary.brokers_buy) {
+    buyMap.set(b.netbs_broker_code, {
+      value: parseFloat(b.bval) || 0,
+      lot: parseFloat(b.blot) || 0,
+      type: b.type,
+    });
+  }
+  
+  for (const s of response.data.broker_summary.brokers_sell) {
+    sellMap.set(s.netbs_broker_code, {
+      value: parseFloat(s.sval) || 0,
+      lot: parseFloat(s.slot) || 0,
+      type: s.type,
+    });
+  }
+  
+  const allBrokers = new Set([...buyMap.keys(), ...sellMap.keys()]);
+  
+  for (const code of allBrokers) {
+    const buy = buyMap.get(code) || { value: 0, lot: 0, type: 'Lokal' };
+    const sell = sellMap.get(code) || { value: 0, lot: 0, type: 'Lokal' };
+    
+    brokers.push({
+      broker_code: code,
+      broker_name: code,
+      buy_value: buy.value,
+      sell_value: sell.value,
+      net_value: buy.value - sell.value,
+      buy_volume: buy.lot,
+      sell_volume: sell.lot,
+      net_volume: buy.lot - sell.lot,
+      broker_type: buy.type || sell.type,
+    });
+  }
+  
+  return brokers.sort((a, b) => b.net_value - a.net_value);
+}
+
+function getLastTradingDate(): string {
+  const today = new Date();
+  const day = today.getDay();
+  
+  if (day === 0) {
+    today.setDate(today.getDate() - 2);
+  } else if (day === 6) {
+    today.setDate(today.getDate() - 1);
+  }
+  
+  return today.toISOString().split('T')[0];
 }
 
 export const datasahamApi = {
   async search(query: string): Promise<SearchResult> {
-    return fetchApi<{ data: SearchResult; message: string }>('/main/search', { q: query })
+    return fetchApi<{ data: SearchResult; message: string }>('/main/search', { q: query }, 300)
       .then(res => res.data);
   },
 
   async getStockProfile(symbol: string): Promise<StockProfile> {
-    return fetchApi<StockProfile>(`/emiten/${symbol}/profile`);
+    return fetchApi<StockProfile>(`/emiten/${symbol}/profile`, undefined, 3600);
   },
 
   async getTopGainers(): Promise<TopMover[]> {
-    return fetchApi<MoverApiResponse>('/movers/top-gainers').then(transformMovers);
+    return fetchApi<MoverApiResponse>('/movers/top-gainers', undefined, 30).then(transformMovers);
   },
 
   async getTopLosers(): Promise<TopMover[]> {
-    return fetchApi<MoverApiResponse>('/movers/top-losers').then(transformMovers);
+    return fetchApi<MoverApiResponse>('/movers/top-losers', undefined, 30).then(transformMovers);
   },
 
   async getMostActive(): Promise<TopMover[]> {
-    return fetchApi<MoverApiResponse>('/movers/most-active').then(transformMovers);
+    return fetchApi<MoverApiResponse>('/movers/most-active', undefined, 30).then(transformMovers);
   },
 
   async getNetForeignBuy(): Promise<TopMover[]> {
-    return fetchApi<MoverApiResponse>('/movers/net-foreign-buy').then(transformMovers);
+    return fetchApi<MoverApiResponse>('/movers/net-foreign-buy', undefined, 30).then(transformMovers);
   },
 
   async getNetForeignSell(): Promise<TopMover[]> {
-    return fetchApi<MoverApiResponse>('/movers/net-foreign-sell').then(transformMovers);
+    return fetchApi<MoverApiResponse>('/movers/net-foreign-sell', undefined, 30).then(transformMovers);
   },
 
-  async getSectorPerformance(): Promise<{ data: SectorPerformance[] }> {
-    return fetchApi<{ data: SectorPerformance[] }>('/sectors/performance');
+  async getBrokerSummary(symbol: string, date?: string): Promise<BrokerSummary[]> {
+    const targetDate = date || getLastTradingDate();
+    return fetchApi<BrokerSummaryApiResponse>(
+      `/market-detector/broker-summary/${symbol}`,
+      { from: targetDate, to: targetDate },
+      60
+    ).then(transformBrokerSummary);
   },
 
-  async getGlobalIndices(): Promise<{ data: GlobalIndex[] }> {
-    return fetchApi<{ data: GlobalIndex[] }>('/global-market/indices');
-  },
-
-  async getBrokerSummary(symbol: string): Promise<{ data: BrokerSummary[] }> {
-    return fetchApi<{ data: BrokerSummary[] }>(`/market-detector/broker-summary/${symbol}`);
-  },
-
-  async getCalendarBonus(): Promise<{ data: { bonus: CalendarEvent[] } }> {
-    return fetchApi<{ data: { bonus: CalendarEvent[] } }>('/calendar/bonus');
-  },
-
-  async getCalendarDividend(): Promise<{ data: { dividend: CalendarEvent[] } }> {
-    return fetchApi<{ data: { dividend: CalendarEvent[] } }>('/calendar/dividend');
-  },
-
-  async getFinancials(symbol: string, reportType: number, statementType: number): Promise<FinancialData> {
-    return fetchApi<FinancialData>(`/emiten/${symbol}/financials`, {
-      report_type: reportType.toString(),
-      statement_type: statementType.toString(),
-    });
-  },
-
-  async getTrending(): Promise<{ data: TrendingStock[] }> {
-    return fetchApi<{ data: TrendingStock[] }>('/main/trending');
+  async getStockQuote(symbol: string): Promise<StockQuote | null> {
+    try {
+      const gainers = await this.getTopGainers();
+      const losers = await this.getTopLosers();
+      const mostActive = await this.getMostActive();
+      
+      const allStocks = [...gainers, ...losers, ...mostActive];
+      const stock = allStocks.find(s => s.symbol === symbol);
+      
+      if (stock) {
+        return {
+          symbol: stock.symbol,
+          company_name: stock.company_name,
+          price: stock.last_price,
+          change: stock.change,
+          change_percentage: stock.change_percentage,
+          volume: stock.volume,
+          value: stock.value,
+          open: stock.last_price - stock.change,
+          high: stock.last_price,
+          low: stock.last_price,
+          prev_close: stock.last_price - stock.change,
+          net_foreign_buy: stock.net_foreign_buy,
+          net_foreign_sell: stock.net_foreign_sell,
+        };
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
   },
 };

@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { StockProfile, BrokerSummary } from '@/lib/datasaham-api';
+import { StockProfile, BrokerSummary, TopMover } from '@/lib/datasaham-api';
 import { 
   OHLCV, calculateTechnicalSummary, TechnicalSummary, TechnicalSignal 
 } from '@/lib/technical-analysis';
@@ -25,6 +25,7 @@ interface StockAnalysisClientProps {
   symbol: string;
   profile: StockProfile | null;
   brokerSummary: BrokerSummary[];
+  stockQuote: TopMover | null;
 }
 
 function generateMockOHLCV(basePrice: number = 10000, days: number = 100): OHLCV[] {
@@ -128,16 +129,23 @@ function formatCurrency(value: number): string {
   return `Rp ${value.toLocaleString('id-ID')}`;
 }
 
+function formatNumber(num: number): string {
+  if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
+  if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+  if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
+  return num.toLocaleString('id-ID');
+}
+
 function formatPrice(price: number): string {
   return price.toLocaleString('id-ID');
 }
 
-export function StockAnalysisClient({ symbol, profile, brokerSummary }: StockAnalysisClientProps) {
-  const mockData = useMemo(() => generateMockOHLCV(10000, 100), []);
-  const currentPrice = mockData[mockData.length - 1].close;
-  const previousPrice = mockData[mockData.length - 2].close;
-  const priceChange = currentPrice - previousPrice;
-  const priceChangePercent = (priceChange / previousPrice) * 100;
+export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote }: StockAnalysisClientProps) {
+  const currentPrice = stockQuote?.last_price || 0;
+  const priceChange = stockQuote?.change || 0;
+  const priceChangePercent = stockQuote?.change_percentage || 0;
+  
+  const mockData = useMemo(() => generateMockOHLCV(currentPrice || 10000, 100), [currentPrice]);
   
   const technicalSummary = useMemo(() => calculateTechnicalSummary(mockData), [mockData]);
   
@@ -173,26 +181,44 @@ export function StockAnalysisClient({ symbol, profile, brokerSummary }: StockAna
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold">{symbol}</h1>
-                <Badge variant="outline">IDX</Badge>
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold">{symbol}</h1>
+                  <Badge variant="outline">IDX</Badge>
+                  {stockQuote && (
+                    <Badge variant="secondary" className="text-xs bg-green-500/20 text-green-500">
+                      LIVE
+                    </Badge>
+                  )}
+                </div>
+                {stockQuote ? (
+                  <p className="text-sm text-muted-foreground">
+                    {stockQuote.company_name}
+                  </p>
+                ) : profile && (
+                  <p className="text-sm text-muted-foreground">
+                    {profile.background?.substring(0, 100)}...
+                  </p>
+                )}
               </div>
-              {profile && (
-                <p className="text-sm text-muted-foreground">
-                  {profile.background?.substring(0, 100)}...
-                </p>
-              )}
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold font-mono">{formatPrice(currentPrice)}</p>
-              <div className={`flex items-center justify-end gap-1 ${priceChange >= 0 ? 'text-bullish' : 'text-bearish'}`}>
-                {priceChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                <span className="font-medium">
-                  {priceChange >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%
-                </span>
+              <div className="text-right">
+                {stockQuote ? (
+                  <>
+                    <p className="text-2xl font-bold font-mono">{formatPrice(currentPrice)}</p>
+                    <div className={`flex items-center justify-end gap-1 ${priceChange >= 0 ? 'text-bullish' : 'text-bearish'}`}>
+                      {priceChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                      <span className="font-medium">
+                        {priceChange >= 0 ? '+' : ''}{priceChange.toLocaleString('id-ID')} ({priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%)
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Vol: {formatNumber(stockQuote.volume)} | Val: {formatCurrency(stockQuote.value)}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Data tidak tersedia</p>
+                )}
               </div>
-            </div>
           </div>
         </div>
       </header>

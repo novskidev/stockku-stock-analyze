@@ -15,6 +15,7 @@ export interface BrokerFlow {
   sellValue: number;
   flow: 'buy' | 'sell' | 'neutral';
   intensity: number;
+  brokerType?: string;
 }
 
 export interface ForeignFlow {
@@ -35,9 +36,7 @@ export interface BandarmologySummary {
   smartMoneyDirection: 'bullish' | 'bearish' | 'neutral';
 }
 
-const FOREIGN_BROKER_CODES = ['YP', 'GX', 'CG', 'ML', 'PD', 'CC', 'RX', 'KZ', 'DB', 'UB', 'CS', 'MS', 'JP', 'BK', 'NI', 'MQ', 'OD', 'LG', 'AK'];
-
-const BIG_BROKER_CODES = ['YP', 'GX', 'CG', 'ML', 'PD', 'CC', 'RX', 'KZ', 'DB', 'UB', 'CS', 'MS', 'JP', 'BK', 'NI', 'MQ', 'OD', 'LG', 'AK', 'DH', 'AF', 'BZ', 'FS', 'AI', 'ID', 'AG', 'EB', 'DX', 'KI', 'EP'];
+const BIG_BROKER_CODES = ['ZP', 'AK', 'IF', 'SQ', 'BB', 'CP', 'DX', 'KI', 'EP', 'DH', 'AF', 'BZ', 'FS', 'AI', 'ID', 'AG', 'EB'];
 
 export function analyzeBrokerSummary(brokers: BrokerSummary[]): BandarmologySummary {
   const signals: BandarmologySignal[] = [];
@@ -55,6 +54,7 @@ export function analyzeBrokerSummary(brokers: BrokerSummary[]): BandarmologySumm
     sellValue: b.sell_value,
     flow: 'buy' as const,
     intensity: calculateIntensity(b.net_value, b.buy_value + b.sell_value),
+    brokerType: (b as BrokerSummary & { broker_type?: string }).broker_type,
   }));
 
   const topSellerFlows: BrokerFlow[] = topSellers.map(b => ({
@@ -66,9 +66,10 @@ export function analyzeBrokerSummary(brokers: BrokerSummary[]): BandarmologySumm
     sellValue: b.sell_value,
     flow: 'sell' as const,
     intensity: calculateIntensity(Math.abs(b.net_value), b.buy_value + b.sell_value),
+    brokerType: (b as BrokerSummary & { broker_type?: string }).broker_type,
   }));
 
-  const foreignBrokers = brokers.filter(b => FOREIGN_BROKER_CODES.includes(b.broker_code));
+  const foreignBrokers = brokers.filter(b => (b as BrokerSummary & { broker_type?: string }).broker_type === 'Asing');
   const foreignNetBuy = foreignBrokers.reduce((sum, b) => sum + (b.net_value > 0 ? b.net_value : 0), 0);
   const foreignNetSell = foreignBrokers.reduce((sum, b) => sum + (b.net_value < 0 ? Math.abs(b.net_value) : 0), 0);
   const foreignNetValue = foreignBrokers.reduce((sum, b) => sum + b.net_value, 0);

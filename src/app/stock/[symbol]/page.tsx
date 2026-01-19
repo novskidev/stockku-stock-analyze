@@ -1,6 +1,5 @@
-import { datasahamApi } from '@/lib/datasaham-api';
+import { datasahamApi, TopMover } from '@/lib/datasaham-api';
 import { StockAnalysisClient } from '@/components/stock-analysis-client';
-import { notFound } from 'next/navigation';
 
 interface PageProps {
   params: Promise<{ symbol: string }>;
@@ -8,14 +7,21 @@ interface PageProps {
 
 async function getStockData(symbol: string) {
   try {
-    const [profile, brokerSummary] = await Promise.all([
+    const [profile, brokerSummary, gainers, losers, mostActive] = await Promise.all([
       datasahamApi.getStockProfile(symbol).catch(() => null),
-      datasahamApi.getBrokerSummary(symbol).catch(() => ({ data: [] })),
+      datasahamApi.getBrokerSummary(symbol).catch(() => []),
+      datasahamApi.getTopGainers().catch(() => []),
+      datasahamApi.getTopLosers().catch(() => []),
+      datasahamApi.getMostActive().catch(() => []),
     ]);
+
+    const allStocks = [...gainers, ...losers, ...mostActive];
+    const stockQuote = allStocks.find(s => s.symbol === symbol) || null;
 
     return {
       profile,
-      brokerSummary: brokerSummary.data || [],
+      brokerSummary,
+      stockQuote,
     };
   } catch {
     return null;
@@ -33,6 +39,7 @@ export default async function StockPage({ params }: PageProps) {
       symbol={upperSymbol}
       profile={data?.profile || null}
       brokerSummary={data?.brokerSummary || []}
+      stockQuote={data?.stockQuote || null}
     />
   );
 }
