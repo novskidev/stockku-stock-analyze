@@ -511,7 +511,12 @@ export interface SectorRotation {
   hot_sectors: SectorData[];
   cold_sectors: SectorData[];
   all_sectors: SectorData[];
-  summary: string;
+  summary: {
+    total_sectors: number;
+    bullish_sectors: number;
+    bearish_sectors: number;
+    neutral_sectors: number;
+  };
 }
 
 export interface RetailOpportunity {

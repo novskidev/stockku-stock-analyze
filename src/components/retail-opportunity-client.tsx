@@ -70,8 +70,9 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
               <div className="flex items-center gap-3">
                 <PieChart className="w-8 h-8 text-chart-3" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Leading Sectors</p>
-                  <p className="text-2xl font-bold">{sectorRotation?.leading_sectors?.length || 0}</p>
+                    <p className="text-sm text-muted-foreground">Leading Sectors</p>
+                    <p className="text-2xl font-bold">{sectorRotation?.hot_sectors?.length || 0}</p>
+
                 </div>
               </div>
             </CardContent>
@@ -166,9 +167,10 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                                 {stock.reasons.technical.trend}
                               </Badge>
                               {stock.reasons.volume.unusual_volume && (
-                                <Badge variant="outline" className="bg-chart-2/10 text-chart-2">
-                                  Vol Surge {stock.reasons.volume.volume_surge.toFixed(0)}%
-                                </Badge>
+                                  <Badge variant="outline" className="bg-chart-2/10 text-chart-2">
+                                    Vol Surge {stock.reasons.volume.volume_surge?.toFixed(0) || 0}%
+                                  </Badge>
+
                               )}
                             </div>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -251,9 +253,10 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                                 </p>
                               </div>
                               <div>
-                                <p className="text-xs text-muted-foreground">Volume</p>
-                                <p className="font-medium">{alert.volume}</p>
-                                <p className="text-xs text-chart-2">{alert.volume_vs_avg.toFixed(0)}x avg</p>
+                                  <p className="text-xs text-muted-foreground">Volume</p>
+                                  <p className="font-medium">{alert.volume}</p>
+                                  <p className="text-xs text-chart-2">{alert.volume_vs_avg?.toFixed(0) || 0}x avg</p>
+
                               </div>
                               <div>
                                 <p className="text-xs text-muted-foreground">Target / SL</p>
@@ -302,9 +305,30 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                       Market Phase: <span className="font-medium text-foreground">{sectorRotation.market_phase}</span>
                     </p>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">{sectorRotation.summary}</p>
-                  </CardContent>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-bullish" />
+                          <span className="font-medium text-bullish">{sectorRotation.summary.bullish_sectors}</span>
+                          <span className="text-muted-foreground">Bullish</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-bearish" />
+                          <span className="font-medium text-bearish">{sectorRotation.summary.bearish_sectors}</span>
+                          <span className="text-muted-foreground">Bearish</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                          <span className="font-medium text-yellow-500">{sectorRotation.summary.neutral_sectors}</span>
+                          <span className="text-muted-foreground">Neutral</span>
+                        </div>
+                        <div className="border-l pl-4 flex items-center gap-2">
+                          <span className="font-medium">{sectorRotation.summary.total_sectors}</span>
+                          <span className="text-muted-foreground">Total Sectors</span>
+                        </div>
+                      </div>
+                    </CardContent>
+
                 </Card>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
