@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { StockProfile, BrokerSummary, TopMover, BandarAnalysis } from '@/lib/datasaham-api';
+import { StockProfile, BrokerSummary, TopMover, BandarAnalysis, RiskRewardAnalysis } from '@/lib/datasaham-api';
 import { 
   OHLCV, calculateTechnicalSummary, TechnicalSummary, TechnicalSignal 
 } from '@/lib/technical-analysis';
@@ -27,6 +27,7 @@ interface StockAnalysisClientProps {
   brokerSummary: BrokerSummary[];
   stockQuote: TopMover | null;
   bandarAnalysis: BandarAnalysis;
+  riskReward: RiskRewardAnalysis | null;
 }
 
 function generateMockOHLCV(basePrice: number = 10000, days: number = 100): OHLCV[] {
@@ -141,7 +142,7 @@ function formatPrice(price: number): string {
   return price.toLocaleString('id-ID');
 }
 
-export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote, bandarAnalysis }: StockAnalysisClientProps) {
+export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote, bandarAnalysis, riskReward }: StockAnalysisClientProps) {
   const currentPrice = stockQuote?.last_price || 0;
   const priceChange = stockQuote?.change || 0;
   const priceChangePercent = stockQuote?.change_percentage || 0;
@@ -338,24 +339,28 @@ export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote
         </div>
 
         <Tabs defaultValue="technical" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="technical" className="gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Technical
-            </TabsTrigger>
-            <TabsTrigger value="fundamental" className="gap-2">
-              <Shield className="w-4 h-4" />
-              Fundamental
-            </TabsTrigger>
-            <TabsTrigger value="bandarmology" className="gap-2">
-              <Users className="w-4 h-4" />
-              Bandarmology
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="gap-2">
-              <Building className="w-4 h-4" />
-              Profile
-            </TabsTrigger>
-          </TabsList>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="technical" className="gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Technical
+              </TabsTrigger>
+              <TabsTrigger value="fundamental" className="gap-2">
+                <Shield className="w-4 h-4" />
+                Fundamental
+              </TabsTrigger>
+              <TabsTrigger value="bandarmology" className="gap-2">
+                <Users className="w-4 h-4" />
+                Bandarmology
+              </TabsTrigger>
+              <TabsTrigger value="riskreward" className="gap-2">
+                <Target className="w-4 h-4" />
+                Risk/Reward
+              </TabsTrigger>
+              <TabsTrigger value="profile" className="gap-2">
+                <Building className="w-4 h-4" />
+                Profile
+              </TabsTrigger>
+            </TabsList>
 
           <TabsContent value="technical" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
@@ -948,9 +953,208 @@ export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote
                   </CardContent>
                 </Card>
               )}
+              </TabsContent>
+
+            <TabsContent value="riskreward" className="space-y-4">
+              {riskReward ? (
+                <>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <Card className={`${
+                      riskReward.recommendation === 'BUY' || riskReward.recommendation === 'STRONG_BUY' ? 'bg-bullish/10 border-bullish/30' :
+                      riskReward.recommendation === 'SELL' || riskReward.recommendation === 'AVOID' ? 'bg-bearish/10 border-bearish/30' :
+                      'bg-yellow-500/10 border-yellow-500/30'
+                    }`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Target className="w-5 h-5" />
+                          <span className="text-sm font-medium">Recommendation</span>
+                        </div>
+                        <p className={`text-2xl font-bold ${
+                          riskReward.recommendation === 'BUY' || riskReward.recommendation === 'STRONG_BUY' ? 'text-bullish' :
+                          riskReward.recommendation === 'SELL' || riskReward.recommendation === 'AVOID' ? 'text-bearish' : 'text-yellow-500'
+                        }`}>
+                          {riskReward.recommendation.replace(/_/g, ' ')}
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Shield className="w-5 h-5 text-bearish" />
+                          <span className="text-sm font-medium">Stop Loss</span>
+                        </div>
+                        <p className="text-2xl font-bold font-mono text-bearish">
+                          Rp {formatPrice(riskReward.stop_loss_recommended)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Risk: {riskReward.risk_amount.toFixed(2)}%
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="w-5 h-5 text-bullish" />
+                          <span className="text-sm font-medium">Best Target</span>
+                        </div>
+                        <p className="text-2xl font-bold font-mono text-bullish">
+                          Rp {formatPrice(riskReward.target_prices[0]?.level || 0)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Reward: +{riskReward.reward_amount.toFixed(2)}%
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className={`${
+                      riskReward.risk_reward_ratio >= 2 ? 'bg-bullish/10 border-bullish/30' :
+                      riskReward.risk_reward_ratio >= 1 ? 'bg-yellow-500/10 border-yellow-500/30' :
+                      'bg-bearish/10 border-bearish/30'
+                    }`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Activity className="w-5 h-5" />
+                          <span className="text-sm font-medium">Risk:Reward</span>
+                        </div>
+                        <p className={`text-2xl font-bold ${
+                          riskReward.risk_reward_ratio >= 2 ? 'text-bullish' :
+                          riskReward.risk_reward_ratio >= 1 ? 'text-yellow-500' : 'text-bearish'
+                        }`}>
+                          1:{riskReward.risk_reward_ratio.toFixed(1)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {riskReward.risk_reward_ratio >= 2 ? 'Good Setup' : riskReward.risk_reward_ratio >= 1 ? 'Fair Setup' : 'Poor Setup'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Target className="w-5 h-5 text-primary" />
+                          Target Prices
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {riskReward.target_prices.map((target, idx) => (
+                            <div key={idx} className="p-3 rounded-lg bg-secondary">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium">Target {idx + 1}</span>
+                                <Badge className={`${
+                                  target.probability >= 70 ? 'bg-bullish/20 text-bullish' :
+                                  target.probability >= 50 ? 'bg-yellow-500/20 text-yellow-500' :
+                                  'bg-muted text-muted-foreground'
+                                }`}>
+                                  {target.probability}% prob
+                                </Badge>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <p className="text-xl font-mono font-bold text-bullish">
+                                  Rp {formatPrice(target.level)}
+                                </p>
+                                <div className="text-right text-sm">
+                                  <p className="text-bullish">+{target.reward.toFixed(2)}%</p>
+                                  <p className="text-muted-foreground">RR 1:{target.risk_reward.toFixed(1)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <DollarSign className="w-5 h-5 text-primary" />
+                          Position Sizing
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-3 rounded-lg bg-secondary">
+                            <p className="text-xs text-muted-foreground">Max Position</p>
+                            <p className="text-lg font-bold">{riskReward.position_sizing.max_position_percent}%</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-secondary">
+                            <p className="text-xs text-muted-foreground">Suggested Shares</p>
+                            <p className="text-lg font-bold">{riskReward.position_sizing.suggested_shares.toLocaleString()}</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-secondary">
+                            <p className="text-xs text-muted-foreground">Total Investment</p>
+                            <p className="text-lg font-bold">{riskReward.position_sizing.total_investment}</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-bearish/10">
+                            <p className="text-xs text-muted-foreground">Max Loss</p>
+                            <p className="text-lg font-bold text-bearish">{riskReward.position_sizing.max_loss}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-primary" />
+                        Technical Levels
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+                        <div className="p-2 rounded bg-bearish/10 text-center">
+                          <p className="text-xs text-muted-foreground">S3</p>
+                          <p className="font-mono font-bold text-bearish">{formatPrice(riskReward.technical_levels.s3)}</p>
+                        </div>
+                        <div className="p-2 rounded bg-bearish/10 text-center">
+                          <p className="text-xs text-muted-foreground">S2</p>
+                          <p className="font-mono font-bold text-bearish">{formatPrice(riskReward.technical_levels.s2)}</p>
+                        </div>
+                        <div className="p-2 rounded bg-bearish/10 text-center">
+                          <p className="text-xs text-muted-foreground">S1</p>
+                          <p className="font-mono font-bold text-bearish">{formatPrice(riskReward.technical_levels.s1)}</p>
+                        </div>
+                        <div className="p-2 rounded bg-primary/10 text-center">
+                          <p className="text-xs text-muted-foreground">Pivot</p>
+                          <p className="font-mono font-bold">{formatPrice(riskReward.technical_levels.pivot_point)}</p>
+                        </div>
+                        <div className="p-2 rounded bg-bullish/10 text-center">
+                          <p className="text-xs text-muted-foreground">R1</p>
+                          <p className="font-mono font-bold text-bullish">{formatPrice(riskReward.technical_levels.r1)}</p>
+                        </div>
+                        <div className="p-2 rounded bg-bullish/10 text-center">
+                          <p className="text-xs text-muted-foreground">R2</p>
+                          <p className="font-mono font-bold text-bullish">{formatPrice(riskReward.technical_levels.r2)}</p>
+                        </div>
+                        <div className="p-2 rounded bg-bullish/10 text-center">
+                          <p className="text-xs text-muted-foreground">R3</p>
+                          <p className="font-mono font-bold text-bullish">{formatPrice(riskReward.technical_levels.r3)}</p>
+                        </div>
+                        <div className="p-2 rounded bg-secondary text-center">
+                          <p className="text-xs text-muted-foreground">ATR</p>
+                          <p className="font-mono font-bold">{riskReward.technical_levels.atr} ({riskReward.technical_levels.atr_percent}%)</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Target className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-lg font-medium">Risk/Reward Data Unavailable</p>
+                    <p className="text-sm text-muted-foreground">Risk reward analysis is not available for this stock</p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
-          <TabsContent value="profile" className="space-y-4">
+            <TabsContent value="profile" className="space-y-4">
             {profile ? (
               <>
                 <Card>

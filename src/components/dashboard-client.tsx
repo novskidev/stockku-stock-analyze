@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, TrendingUp, TrendingDown, Activity, Users, ArrowUpRight, ArrowDownRight, BarChart3, LineChart, Zap, Target, Shield } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Activity, Users, ArrowUpRight, ArrowDownRight, BarChart3, LineChart, Zap, Target, Shield, Rocket } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -155,15 +155,21 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
             </div>
 
             <nav className="hidden md:flex items-center gap-2">
-              <Button variant="ghost" size="sm">
-                <LineChart className="w-4 h-4 mr-2" />
-                Screener
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Target className="w-4 h-4 mr-2" />
-                Watchlist
-              </Button>
-            </nav>
+                <Link href="/retail-opportunity">
+                  <Button variant="ghost" size="sm">
+                    <Rocket className="w-4 h-4 mr-2" />
+                    Retail Opportunity
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="sm">
+                  <LineChart className="w-4 h-4 mr-2" />
+                  Screener
+                </Button>
+                <Button variant="ghost" size="sm">
+                  <Target className="w-4 h-4 mr-2" />
+                  Watchlist
+                </Button>
+              </nav>
           </div>
         </div>
       </header>

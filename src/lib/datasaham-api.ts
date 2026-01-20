@@ -352,6 +352,174 @@ export interface BandarAnalysis {
   pumpDump: BandarPumpDump | null;
 }
 
+export interface MultibaggerCandidate {
+  symbol: string;
+  name: string;
+  multibagger_score: number;
+  potential_return: string;
+  timeframe: string;
+  current_price: number;
+  reasons: {
+    technical: {
+      price_vs_52w_low: number;
+      price_vs_52w_high: number;
+      trend: string;
+      breakout_potential: string;
+      score: number;
+    };
+    volume: {
+      volume_surge: number;
+      volume_trend: string;
+      unusual_volume: boolean;
+      score: number;
+    };
+    foreign_flow: {
+      net_foreign_flow: string;
+      foreign_accumulation: boolean;
+      consecutive_buy_days: number;
+      score: number;
+    };
+    accumulation: {
+      accumulation_score: number;
+      status: string;
+      days: number;
+      score: number;
+    };
+  };
+  entry_zone: {
+    ideal_price: number;
+    max_price: number;
+    current_price: number;
+  };
+  target_prices: Array<{
+    target: number;
+    probability: number;
+    timeframe: string;
+    potential_gain: number;
+  }>;
+  risk_level: string;
+  stop_loss: number;
+  sector: string;
+  market_cap: number;
+  market_cap_formatted: string;
+}
+
+export interface MultibaggerScan {
+  scan_date: string;
+  total_candidates: number;
+  filters_applied: {
+    min_score: number;
+    max_results: number;
+  };
+  candidates: MultibaggerCandidate[];
+}
+
+export interface BreakoutAlert {
+  symbol: string;
+  name: string;
+  alert_type: string;
+  severity: string;
+  price: number;
+  change_percentage: number;
+  volume: string;
+  volume_vs_avg: number;
+  indicators: {
+    resistance_level: number;
+    support_level: number;
+    distance_to_resistance: number;
+    distance_to_support: number;
+    volume_confirmation: boolean;
+    price_momentum: string;
+  };
+  breakout_probability: number;
+  action: string;
+  entry_trigger: string;
+  target: number;
+  stop_loss: number;
+  timestamp: string;
+}
+
+export interface BreakoutAlerts {
+  scan_date: string;
+  total_alerts: number;
+  alerts: BreakoutAlert[];
+}
+
+export interface RiskRewardAnalysis {
+  symbol: string;
+  name: string;
+  current_price: number;
+  analysis_date: string;
+  support_levels: number[];
+  resistance_levels: number[];
+  stop_loss_recommended: number;
+  target_prices: Array<{
+    level: number;
+    probability: number;
+    reward: number;
+    risk_reward: number;
+  }>;
+  risk_amount: number;
+  reward_amount: number;
+  risk_reward_ratio: number;
+  recommendation: string;
+  position_sizing: {
+    max_position_percent: number;
+    suggested_shares: number;
+    total_investment: string;
+    max_loss: string;
+  };
+  technical_levels: {
+    pivot_point: number;
+    r1: number;
+    r2: number;
+    r3: number;
+    s1: number;
+    s2: number;
+    s3: number;
+    atr: number;
+    atr_percent: number;
+  };
+}
+
+export interface SectorData {
+  sector_id: string;
+  sector_name: string;
+  momentum_score: number;
+  status: string;
+  avg_return_today: number;
+  total_value: number;
+  total_value_formatted: string;
+  foreign_flow: string;
+  top_stocks: Array<{
+    symbol: string;
+    name: string;
+    price: number;
+    change_percent: number;
+    value: number;
+    value_formatted: string;
+  }>;
+  recommendation: string;
+  companies_count: number;
+  gainers_count: number;
+  losers_count: number;
+}
+
+export interface SectorRotation {
+  analysis_date: string;
+  market_phase: string;
+  hot_sectors: SectorData[];
+  cold_sectors: SectorData[];
+  all_sectors: SectorData[];
+  summary: string;
+}
+
+export interface RetailOpportunity {
+  multibagger: MultibaggerScan | null;
+  breakout: BreakoutAlerts | null;
+  sectorRotation: SectorRotation | null;
+}
+
 function transformMovers(response: MoverApiResponse): TopMover[] {
   return response.data.mover_list.map(item => ({
     symbol: item.stock_detail.code,
@@ -555,5 +723,46 @@ export const datasahamApi = {
       this.getBandarPumpDump(symbol),
     ]);
     return { accumulation, distribution, smartMoney, pumpDump };
+  },
+
+  async getMultibaggerScan(): Promise<MultibaggerScan | null> {
+    try {
+      return await fetchApi<MultibaggerScan>('/analysis/retail/multibagger/scan', undefined, 300);
+    } catch {
+      return null;
+    }
+  },
+
+  async getBreakoutAlerts(): Promise<BreakoutAlerts | null> {
+    try {
+      return await fetchApi<BreakoutAlerts>('/analysis/retail/breakout/alerts', undefined, 60);
+    } catch {
+      return null;
+    }
+  },
+
+  async getRiskReward(symbol: string): Promise<RiskRewardAnalysis | null> {
+    try {
+      return await fetchApi<RiskRewardAnalysis>(`/analysis/retail/risk-reward/${symbol}`, undefined, 60);
+    } catch {
+      return null;
+    }
+  },
+
+  async getSectorRotation(): Promise<SectorRotation | null> {
+    try {
+      return await fetchApi<SectorRotation>('/analysis/retail/sector-rotation', undefined, 300);
+    } catch {
+      return null;
+    }
+  },
+
+  async getRetailOpportunity(): Promise<RetailOpportunity> {
+    const [multibagger, breakout, sectorRotation] = await Promise.all([
+      this.getMultibaggerScan(),
+      this.getBreakoutAlerts(),
+      this.getSectorRotation(),
+    ]);
+    return { multibagger, breakout, sectorRotation };
   },
 };
