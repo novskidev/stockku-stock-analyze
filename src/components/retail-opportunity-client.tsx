@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Rocket, TrendingUp, Target, PieChart, ArrowUp, ArrowDown, 
-  AlertTriangle, CheckCircle, Clock, Zap, BarChart3, Shield
+  AlertTriangle, CheckCircle, Clock, Zap, BarChart3, Shield, ArrowLeft
 } from 'lucide-react';
 import { MultibaggerScan, BreakoutAlerts, SectorRotation, MultibaggerCandidate } from '@/lib/datasaham-api';
 
@@ -16,6 +16,12 @@ interface RetailOpportunityClientProps {
   breakout: BreakoutAlerts | null;
   sectorRotation: SectorRotation | null;
 }
+
+type RetailData = {
+  multibagger: MultibaggerScan | null;
+  breakout: BreakoutAlerts | null;
+  sectorRotation: SectorRotation | null;
+};
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('id-ID').format(price);
@@ -28,6 +34,32 @@ function formatPercent(value: number): string {
 
 export function RetailOpportunityClient({ multibagger, breakout, sectorRotation }: RetailOpportunityClientProps) {
   const [activeTab, setActiveTab] = useState('multibagger');
+  const [data, setData] = useState<RetailData>({ multibagger, breakout, sectorRotation });
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const refreshData = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch('/api/retail/opportunity', { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error('Failed to refresh retail opportunity');
+      }
+      const payload = await response.json();
+      setData(payload.data || { multibagger: null, breakout: null, sectorRotation: null });
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshData();
+    const interval = setInterval(refreshData, 30000);
+    return () => clearInterval(interval);
+  }, [refreshData]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -40,6 +72,26 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
           <p className="text-muted-foreground">
             Find multibagger stocks, breakout alerts, and sector rotation opportunities
           </p>
+          <div className="flex items-center gap-3 mt-2">
+            <Link href="/">
+              <Badge variant="outline" className="cursor-pointer flex items-center gap-1">
+                <ArrowLeft className="w-3 h-3" />
+                Back
+              </Badge>
+            </Link>
+            {lastUpdated && (
+              <span className="text-xs text-muted-foreground">
+                Update: {lastUpdated.toLocaleTimeString('id-ID')}
+              </span>
+            )}
+            <Badge
+              variant="outline"
+              className="cursor-pointer"
+              onClick={refreshData}
+            >
+              {isRefreshing ? 'Refreshing...' : 'Refresh Now'}
+            </Badge>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-4 mb-6">
@@ -49,7 +101,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                 <Rocket className="w-8 h-8 text-chart-1" />
                 <div>
                   <p className="text-sm text-muted-foreground">Multibagger</p>
-                  <p className="text-2xl font-bold">{multibagger?.total_candidates || 0}</p>
+                  <p className="text-2xl font-bold">{data.multibagger?.total_candidates || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -60,7 +112,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                 <Zap className="w-8 h-8 text-chart-2" />
                 <div>
                   <p className="text-sm text-muted-foreground">Breakout Alerts</p>
-                  <p className="text-2xl font-bold">{breakout?.total_alerts || 0}</p>
+                  <p className="text-2xl font-bold">{data.breakout?.total_alerts || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -71,7 +123,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                 <PieChart className="w-8 h-8 text-chart-3" />
                 <div>
                     <p className="text-sm text-muted-foreground">Leading Sectors</p>
-                    <p className="text-2xl font-bold">{sectorRotation?.hot_sectors?.length || 0}</p>
+                    <p className="text-2xl font-bold">{data.sectorRotation?.hot_sectors?.length || 0}</p>
 
                 </div>
               </div>
@@ -83,7 +135,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                 <Target className="w-8 h-8 text-chart-4" />
                 <div>
                   <p className="text-sm text-muted-foreground">Market Phase</p>
-                  <p className="text-lg font-bold">{sectorRotation?.market_phase || 'N/A'}</p>
+                  <p className="text-lg font-bold">{data.sectorRotation?.market_phase || 'N/A'}</p>
                 </div>
               </div>
             </CardContent>
@@ -107,7 +159,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
           </TabsList>
 
           <TabsContent value="multibagger" className="space-y-4">
-            {multibagger && multibagger.candidates && multibagger.candidates.length > 0 ? (
+            {data.multibagger && data.multibagger.candidates && data.multibagger.candidates.length > 0 ? (
               <>
                 <Card>
                   <CardHeader>
@@ -116,13 +168,13 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                       Multibagger Scanner
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {multibagger.total_candidates} candidates with score {'>='} {multibagger.filters_applied.min_score}
+                      {data.multibagger.total_candidates} candidates with score {'>='} {data.multibagger.filters_applied.min_score}
                     </p>
                   </CardHeader>
                 </Card>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {multibagger.candidates.map((stock, idx) => (
+                  {data.multibagger.candidates.map((stock, idx) => (
                     <Link key={idx} href={`/stock/${stock.symbol}`}>
                       <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
                         <CardContent className="p-4">
@@ -197,7 +249,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
           </TabsContent>
 
           <TabsContent value="breakout" className="space-y-4">
-            {breakout && breakout.alerts && breakout.alerts.length > 0 ? (
+            {data.breakout && data.breakout.alerts && data.breakout.alerts.length > 0 ? (
               <>
                 <Card>
                   <CardHeader>
@@ -206,13 +258,13 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                       Breakout Alerts
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {breakout.total_alerts} real-time breakout detections with volume confirmation
+                      {data.breakout.total_alerts} real-time breakout detections with volume confirmation
                     </p>
                   </CardHeader>
                 </Card>
 
                 <div className="space-y-3">
-                  {breakout.alerts.slice(0, 15).map((alert, idx) => (
+                  {data.breakout.alerts.slice(0, 15).map((alert, idx) => (
                     <Link key={idx} href={`/stock/${alert.symbol}`}>
                       <Card className={`hover:border-primary/50 transition-colors cursor-pointer ${
                         alert.severity === 'HIGH' ? 'border-bullish/30 bg-bullish/5' :
@@ -293,7 +345,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
           </TabsContent>
 
           <TabsContent value="sector" className="space-y-4">
-            {sectorRotation && sectorRotation.all_sectors ? (
+            {data.sectorRotation && data.sectorRotation.all_sectors ? (
               <>
                 <Card>
                   <CardHeader>
@@ -302,28 +354,28 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                       Sector Rotation Analysis
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Market Phase: <span className="font-medium text-foreground">{sectorRotation.market_phase}</span>
+                      Market Phase: <span className="font-medium text-foreground">{data.sectorRotation.market_phase}</span>
                     </p>
                   </CardHeader>
                     <CardContent>
                       <div className="flex flex-wrap gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full bg-bullish" />
-                          <span className="font-medium text-bullish">{sectorRotation.summary.bullish_sectors}</span>
+                          <span className="font-medium text-bullish">{data.sectorRotation.summary.bullish_sectors}</span>
                           <span className="text-muted-foreground">Bullish</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full bg-bearish" />
-                          <span className="font-medium text-bearish">{sectorRotation.summary.bearish_sectors}</span>
+                          <span className="font-medium text-bearish">{data.sectorRotation.summary.bearish_sectors}</span>
                           <span className="text-muted-foreground">Bearish</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                          <span className="font-medium text-yellow-500">{sectorRotation.summary.neutral_sectors}</span>
+                          <span className="font-medium text-yellow-500">{data.sectorRotation.summary.neutral_sectors}</span>
                           <span className="text-muted-foreground">Neutral</span>
                         </div>
                         <div className="border-l pl-4 flex items-center gap-2">
-                          <span className="font-medium">{sectorRotation.summary.total_sectors}</span>
+                          <span className="font-medium">{data.sectorRotation.summary.total_sectors}</span>
                           <span className="text-muted-foreground">Total Sectors</span>
                         </div>
                       </div>
@@ -332,7 +384,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                 </Card>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {sectorRotation.all_sectors.slice(0, 9).map((sector, idx) => (
+                  {data.sectorRotation.all_sectors.slice(0, 9).map((sector, idx) => (
                     <Card key={idx} className={`${
                       sector.status === 'IMPROVING' || sector.avg_return_today > 0 ? 'border-bullish/30 bg-bullish/5' :
                       sector.status === 'WEAKENING' || sector.avg_return_today < 0 ? 'border-bearish/30 bg-bearish/5' :

@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server';
 import { datasahamApi } from '@/lib/datasaham-api';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const query = searchParams.get('q');
+  const query = searchParams.get('q') || searchParams.get('keyword');
+  const pageParam = searchParams.get('page');
+  const page = pageParam ? Number(pageParam) : undefined;
 
   if (!query || query.length < 2) {
     return NextResponse.json({ results: [] });
   }
 
   try {
-    const searchResult = await datasahamApi.search(query);
+    const searchResult = await datasahamApi.search(query, { page, type: 'company', fresh: true });
     const results = searchResult.company
       .filter(c => c.type === 'Saham' && c.is_tradeable)
       .slice(0, 10)

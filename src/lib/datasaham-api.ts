@@ -1,6 +1,8 @@
 const API_BASE = 'https://api.datasaham.io/api';
 const API_KEY = process.env.DATASAHAM_API_KEY || 'sbk_8fbb3824f0f13e617109e37c66b8c7c55a3debbb9a5870b0';
 
+type QueryParamValue = string | string[] | undefined;
+
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -8,13 +10,24 @@ interface ApiResponse<T> {
   message?: string;
 }
 
-async function fetchApi<T>(endpoint: string, params?: Record<string, string>, revalidate: number = 30): Promise<T> {
-  const url = new URL(`${API_BASE}${endpoint}`);
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
+type QueryParams = Record<string, QueryParamValue>;
+
+function appendSearchParams(url: URL, params?: QueryParams) {
+  if (!params) return;
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined) return;
+    if (Array.isArray(value)) {
+      value.forEach(v => url.searchParams.append(key, v));
+    } else {
       url.searchParams.append(key, value);
-    });
-  }
+    }
+  });
+}
+
+async function fetchApi<T>(endpoint: string, params?: QueryParams, revalidate: number = 30): Promise<T> {
+  const url = new URL(`${API_BASE}${endpoint}`);
+  appendSearchParams(url, params);
 
   const response = await fetch(url.toString(), {
     headers: {
@@ -36,13 +49,9 @@ async function fetchApi<T>(endpoint: string, params?: Record<string, string>, re
   return result.data as T;
 }
 
-export async function fetchApiClient<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
+export async function fetchApiClient<T>(endpoint: string, params?: QueryParams): Promise<T> {
   const url = new URL(`${API_BASE}${endpoint}`);
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
-    });
-  }
+  appendSearchParams(url, params);
 
   const response = await fetch(url.toString(), {
     headers: {
@@ -131,6 +140,271 @@ interface MoverApiResponse {
   };
 }
 
+export interface ChartCandle {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+interface ChartApiResponse {
+  data: {
+    ohlcv: ChartCandle[];
+  };
+}
+
+export interface RetailSentiment {
+  score?: number;
+  status?: 'EUPHORIC' | 'BULLISH' | 'NEUTRAL' | 'FEARFUL' | 'PANIC';
+  danger_level?: string;
+  indicators?: {
+    frequency_score?: number;
+    small_lot_percentage?: number;
+    fomo_score?: number;
+    volume_participation?: number;
+  };
+}
+
+export interface BandarTopBroker {
+  code: string;
+  type: string;
+  net_value: number;
+  net_value_formatted?: string;
+  net_lot?: number;
+  avg_price?: number;
+}
+
+export interface BandarSentiment {
+  score?: number;
+  status?: 'ACCUMULATING' | 'HOLDING' | 'NEUTRAL' | 'DISTRIBUTING' | 'EXITING';
+  indicators?: {
+    top_broker_net_flow?: number;
+    large_lot_percentage?: number;
+    accumulation_score?: number;
+    foreign_flow?: number;
+    institutional_flow?: number;
+  };
+  top_brokers?: {
+    buyers?: BandarTopBroker[];
+    sellers?: BandarTopBroker[];
+  };
+}
+
+export type SentimentDivergence =
+  | 'RETAIL_EUPHORIC_BANDAR_EXIT'
+  | 'RETAIL_PANIC_BANDAR_ACCUMULATE'
+  | 'ALIGNED_BULLISH'
+  | 'ALIGNED_BEARISH'
+  | 'NEUTRAL';
+
+export interface MarketSentiment {
+  symbol: string;
+  analysis_date?: string;
+  current_price?: number;
+  retail_sentiment?: RetailSentiment;
+  bandar_sentiment?: BandarSentiment;
+  divergence?: {
+    detected?: boolean;
+    type?: SentimentDivergence;
+    warning?: string;
+    recommendation?: string;
+    historical_outcome?: string;
+  };
+  summary?: string;
+}
+
+export interface StockInfoDetail {
+  symbol: string;
+  name?: string;
+  last?: number;
+  change?: number;
+  change_percentage?: number;
+  high?: number;
+  low?: number;
+  open?: number;
+  prev_close?: number;
+  volume?: number;
+  value?: number;
+  market_cap?: number;
+  sector?: string;
+  sub_sector?: string;
+  industry?: string;
+}
+
+export interface OrderbookLevel {
+  price: number;
+  volume: number;
+}
+
+export interface Orderbook {
+  symbol: string;
+  bids: OrderbookLevel[];
+  asks: OrderbookLevel[];
+}
+
+export interface HistoricalSummary {
+  average?: number;
+  period?: string;
+  data?: Array<{ date: string; price: number; volume: number }>;
+}
+
+export interface BrokerTradeChartPoint {
+  date: string;
+  foreign_buy?: number;
+  foreign_sell?: number;
+  domestic_buy?: number;
+  domestic_sell?: number;
+}
+
+export interface SeasonalityPoint {
+  month: string;
+  average_return: number;
+  median_return?: number;
+  positive_months?: number;
+  negative_months?: number;
+}
+
+export interface HoldingComposition {
+  holder: string;
+  percentage: number;
+}
+
+export interface ForeignOwnership {
+  date: string;
+  ownership: number;
+}
+
+export interface InsiderTransaction {
+  name: string;
+  relation: string;
+  date: string;
+  type: string;
+  volume: number;
+  price: number;
+}
+
+export interface WhaleBroker {
+  broker_code?: string;
+  code?: string;
+  type?: string;
+  broker_type?: string;
+  net_value?: number;
+  net_value_formatted?: string;
+  net_lot?: number;
+  avg_price?: number;
+  whale_score?: number;
+  action?: string;
+  transaction_count?: number;
+}
+
+export interface WhalePrediction {
+  direction?: string;
+  short_term_direction?: string;
+  confidence?: number;
+  reasoning?: string[];
+}
+
+export interface WhaleActivitySummary {
+  total_whale_buy_value?: number;
+  total_whale_sell_value?: number;
+  net_whale_flow?: number;
+  net_whale_flow_formatted?: string;
+  dominant_action?: string;
+  whale_intensity?: string;
+  whale_buy_count?: number;
+  whale_sell_count?: number;
+}
+
+export interface WhaleTransactions {
+  symbol: string;
+  analysis_date?: string;
+  current_price?: number;
+  min_lot?: number;
+  whale_types?: string[];
+  summary?: WhaleActivitySummary;
+  activity_summary?: WhaleActivitySummary;
+  whale_threshold?: {
+    lot?: number;
+    value?: number;
+    description?: string;
+  };
+  top_brokers?: {
+    buyers?: WhaleBroker[];
+    sellers?: WhaleBroker[];
+  };
+  top_whale_brokers?: WhaleBroker[];
+  prediction?: WhalePrediction;
+  recent_whale_transactions?: Array<{
+    time?: string;
+    action?: string;
+    lot?: number;
+    value?: number;
+    value_formatted?: string;
+    price?: number;
+    market_board?: string;
+    whale_type?: string;
+    impact_estimate?: string;
+  }>;
+  alerts?: string[];
+}
+
+export interface IpoMomentumItem {
+  symbol: string;
+  name: string;
+  sector?: string;
+  status: 'UPCOMING' | 'OFFERING' | 'LISTED' | 'PAST';
+  momentum_score: number;
+  underwriter_tier?: 'TIER_1' | 'TIER_2' | 'TIER_3';
+  recommendation?: 'STRONG_APPLY' | 'APPLY' | 'CONSIDER' | 'AVOID';
+  offering_price?: number;
+  offering_period?: string;
+  listing_date?: string;
+  performance_since_listing?: number;
+}
+
+export interface IpoMomentum {
+  analysis_date?: string;
+  market_sentiment?: string;
+  hot_sectors?: string[];
+  upcoming_ipos?: IpoMomentumItem[];
+  recent_ipos?: IpoMomentumItem[];
+}
+
+export type MoverType =
+  | 'top-gainer'
+  | 'top-loser'
+  | 'top-value'
+  | 'top-volume'
+  | 'top-frequency'
+  | 'net-foreign-buy'
+  | 'net-foreign-sell'
+  | 'iep-current-top-gainer'
+  | 'iep-current-top-loser'
+  | 'iep-prev-top-gainer'
+  | 'iep-prev-top-loser'
+  | 'iev-top-gainer'
+  | 'iev-top-loser'
+  | 'ieval-top-gainer'
+  | 'ieval-top-loser';
+
+export type MoverFilter =
+  | 'FILTER_STOCKS_TYPE_MAIN_BOARD'
+  | 'FILTER_STOCKS_TYPE_DEVELOPMENT_BOARD'
+  | 'FILTER_STOCKS_TYPE_ACCELERATION_BOARD'
+  | 'FILTER_STOCKS_TYPE_NEW_ECONOMY_BOARD'
+  | 'FILTER_STOCKS_TYPE_SPECIAL_MONITORING_BOARD';
+
+export type ChartTimeframe = 'daily' | '15m' | '30m' | '1h' | '2h' | '3h' | '4h';
+
+export const DEFAULT_MOVER_FILTERS: MoverFilter[] = [
+  'FILTER_STOCKS_TYPE_MAIN_BOARD',
+  'FILTER_STOCKS_TYPE_DEVELOPMENT_BOARD',
+  'FILTER_STOCKS_TYPE_ACCELERATION_BOARD',
+  'FILTER_STOCKS_TYPE_NEW_ECONOMY_BOARD',
+];
+
 export interface BrokerSummaryItem {
   broker_code: string;
   broker_type: string;
@@ -185,6 +459,8 @@ export interface BrokerSummary {
   sell_volume: number;
   net_volume: number;
   broker_type: string;
+  buy_avg_price?: number;
+  sell_avg_price?: number;
 }
 
 export interface StockQuote {
@@ -525,6 +801,39 @@ export interface RetailOpportunity {
   sectorRotation: SectorRotation | null;
 }
 
+export interface TrendingItem {
+  symbol: string;
+  name?: string;
+  score?: number;
+  mentions?: number;
+}
+
+export interface TopBrokerItem {
+  broker_code: string;
+  broker_name?: string;
+  total_value?: number;
+  net_value?: number;
+  total_volume?: number;
+}
+
+export interface TopStockItem {
+  symbol: string;
+  name?: string;
+  total_value?: number;
+  total_volume?: number;
+  total_frequency?: number;
+  investor_type?: string;
+  market_type?: string;
+}
+
+export interface BrokerActivity {
+  broker_code: string;
+  from?: string;
+  to?: string;
+  bandar_detector?: unknown;
+  broker_summary?: unknown;
+}
+
 function transformMovers(response: MoverApiResponse): TopMover[] {
   return response.data.mover_list.map(item => ({
     symbol: item.stock_detail.code,
@@ -539,17 +848,34 @@ function transformMovers(response: MoverApiResponse): TopMover[] {
   }));
 }
 
+type MoverFetchOptions = { fresh?: boolean };
+
+type MoverOptions = MoverFetchOptions & { filters?: MoverFilter[] };
+
+function fetchMovers(endpoint: string, options?: MoverOptions): Promise<TopMover[]> {
+  const params: QueryParams | undefined = options?.filters?.length
+    ? { filterStocks: options.filters }
+    : undefined;
+
+  if (options?.fresh) {
+    return fetchApiClient<MoverApiResponse>(endpoint, params).then(transformMovers);
+  }
+
+  return fetchApi<MoverApiResponse>(endpoint, params, 30).then(transformMovers);
+}
+
 function transformBrokerSummary(response: BrokerSummaryApiResponse): BrokerSummary[] {
   const brokers: BrokerSummary[] = [];
   
-  const buyMap = new Map<string, { value: number; lot: number; type: string }>();
-  const sellMap = new Map<string, { value: number; lot: number; type: string }>();
+  const buyMap = new Map<string, { value: number; lot: number; type: string; avg?: number }>();
+  const sellMap = new Map<string, { value: number; lot: number; type: string; avg?: number }>();
   
   for (const b of response.data.broker_summary.brokers_buy) {
     buyMap.set(b.netbs_broker_code, {
       value: Math.abs(parseFloat(b.bval) || 0),
       lot: Math.abs(parseFloat(b.blot) || 0),
       type: b.type,
+      avg: b.netbs_buy_avg_price !== undefined ? Math.abs(parseFloat(b.netbs_buy_avg_price) || 0) : undefined,
     });
   }
   
@@ -558,14 +884,15 @@ function transformBrokerSummary(response: BrokerSummaryApiResponse): BrokerSumma
       value: Math.abs(parseFloat(s.sval) || 0),
       lot: Math.abs(parseFloat(s.slot) || 0),
       type: s.type,
+      avg: s.netbs_sell_avg_price !== undefined ? Math.abs(parseFloat(s.netbs_sell_avg_price) || 0) : undefined,
     });
   }
   
   const allBrokers = new Set([...buyMap.keys(), ...sellMap.keys()]);
   
   for (const code of allBrokers) {
-    const buy = buyMap.get(code) || { value: 0, lot: 0, type: 'Lokal' };
-    const sell = sellMap.get(code) || { value: 0, lot: 0, type: 'Lokal' };
+    const buy = buyMap.get(code) || { value: 0, lot: 0, type: 'Lokal', avg: undefined };
+    const sell = sellMap.get(code) || { value: 0, lot: 0, type: 'Lokal', avg: undefined };
     
     brokers.push({
       broker_code: code,
@@ -577,6 +904,8 @@ function transformBrokerSummary(response: BrokerSummaryApiResponse): BrokerSumma
       sell_volume: sell.lot,
       net_volume: buy.lot - sell.lot,
       broker_type: buy.type || sell.type,
+      buy_avg_price: buy.avg,
+      sell_avg_price: sell.avg,
     });
   }
   
@@ -603,33 +932,96 @@ function getRecentTradingDates(count: number = 5): string[] {
 }
 
 export const datasahamApi = {
-  async search(query: string): Promise<SearchResult> {
-    return fetchApi<{ data: SearchResult; message: string }>('/main/search', { q: query }, 300)
-      .then(res => res.data);
+  async search(keyword: string, options?: { page?: number; type?: 'company'; fresh?: boolean }): Promise<SearchResult> {
+    const params: QueryParams = {
+      keyword,
+      type: options?.type ?? 'company',
+    };
+    if (options?.page !== undefined) params.page = String(options.page);
+
+    if (options?.fresh) {
+      return fetchApiClient<{ data: SearchResult; message: string }>('/main/search', params).then(res => res.data);
+    }
+
+    return fetchApi<{ data: SearchResult; message: string }>('/main/search', params, 60).then(res => res.data);
   },
 
   async getStockProfile(symbol: string): Promise<StockProfile> {
     return fetchApi<StockProfile>(`/emiten/${symbol}/profile`, undefined, 3600);
   },
 
-  async getTopGainers(): Promise<TopMover[]> {
-    return fetchApi<MoverApiResponse>('/movers/top-gainers', undefined, 30).then(transformMovers);
+  async getMovers(moverType: MoverType, options?: MoverOptions): Promise<TopMover[]> {
+    const filters = options?.filters ?? DEFAULT_MOVER_FILTERS;
+    return fetchMovers(`/movers/${moverType}`, { ...options, filters });
   },
 
-  async getTopLosers(): Promise<TopMover[]> {
-    return fetchApi<MoverApiResponse>('/movers/top-losers', undefined, 30).then(transformMovers);
+  async getTopGainers(options?: MoverOptions): Promise<TopMover[]> {
+    return this.getMovers('top-gainer', options);
   },
 
-  async getMostActive(): Promise<TopMover[]> {
-    return fetchApi<MoverApiResponse>('/movers/most-active', undefined, 30).then(transformMovers);
+  async getTopLosers(options?: MoverOptions): Promise<TopMover[]> {
+    return this.getMovers('top-loser', options);
   },
 
-  async getNetForeignBuy(): Promise<TopMover[]> {
-    return fetchApi<MoverApiResponse>('/movers/net-foreign-buy', undefined, 30).then(transformMovers);
+  async getMostActive(options?: MoverOptions): Promise<TopMover[]> {
+    return this.getMovers('top-volume', options);
   },
 
-  async getNetForeignSell(): Promise<TopMover[]> {
-    return fetchApi<MoverApiResponse>('/movers/net-foreign-sell', undefined, 30).then(transformMovers);
+  async getNetForeignBuy(options?: MoverOptions): Promise<TopMover[]> {
+    return this.getMovers('net-foreign-buy', options);
+  },
+
+  async getNetForeignSell(options?: MoverOptions): Promise<TopMover[]> {
+    return this.getMovers('net-foreign-sell', options);
+  },
+
+  async getChartData(
+    symbol: string,
+    timeframe: ChartTimeframe,
+    options: { from: string; to: string; limit?: number; fresh?: boolean }
+  ): Promise<ChartCandle[]> {
+    const params: QueryParams = {
+      from: options.from,
+      to: options.to,
+    };
+
+    if (options.limit !== undefined) {
+      params.limit = String(options.limit);
+    }
+
+    const endpoint = `/chart/${symbol}/${timeframe}`;
+
+    if (options.fresh) {
+      return fetchApiClient<ChartApiResponse>(endpoint, params)
+        .then(res => res.data?.ohlcv || [])
+        .catch(() => []);
+    }
+
+    return fetchApi<ChartApiResponse>(endpoint, params, 0)
+      .then(res => res.data?.ohlcv || [])
+      .catch(() => []);
+  },
+
+  async getMarketSentiment(symbol: string, options?: { days?: number; fresh?: boolean }): Promise<MarketSentiment | null> {
+    const params: QueryParams = {};
+    if (options?.days !== undefined) {
+      params.days = String(options.days);
+    }
+
+    const endpoint = `/analysis/sentiment/${symbol}`;
+
+    if (options?.fresh) {
+      return fetchApiClient<MarketSentiment>(endpoint, params).catch(() => null);
+    }
+    return fetchApi<MarketSentiment>(endpoint, params, 60).catch(() => null);
+  },
+
+  async getIpoMomentum(options?: { fresh?: boolean }): Promise<IpoMomentum | null> {
+    const endpoint = '/analysis/sentiment/ipo/momentum';
+    if (options?.fresh) {
+      return fetchApiClient<IpoMomentum>(endpoint).catch(() => null);
+    }
+    return fetchApi<IpoMomentum>(endpoint, undefined, 300).catch(() => null);
   },
 
   async getBrokerSummary(symbol: string): Promise<BrokerSummary[]> {
@@ -730,44 +1122,285 @@ export const datasahamApi = {
     return { accumulation, distribution, smartMoney, pumpDump };
   },
 
-  async getMultibaggerScan(): Promise<MultibaggerScan | null> {
-    try {
-      return await fetchApi<MultibaggerScan>('/analysis/retail/multibagger/scan', undefined, 300);
-    } catch {
-      return null;
+  async getMultibaggerScan(options?: { min_score?: number; sector?: string; max_results?: number; fresh?: boolean }): Promise<MultibaggerScan | null> {
+    const params: QueryParams = {};
+    if (options?.min_score !== undefined) params.min_score = String(options.min_score);
+    if (options?.sector) params.sector = options.sector;
+    if (options?.max_results !== undefined) params.max_results = String(options.max_results);
+
+    const endpoint = '/analysis/retail/multibagger/scan';
+    if (options?.fresh) {
+      return fetchApiClient<MultibaggerScan>(endpoint, params).catch(() => null);
     }
+    return fetchApi<MultibaggerScan>(endpoint, params, 300).catch(() => null);
   },
 
-  async getBreakoutAlerts(): Promise<BreakoutAlerts | null> {
-    try {
-      return await fetchApi<BreakoutAlerts>('/analysis/retail/breakout/alerts', undefined, 60);
-    } catch {
-      return null;
+  async getBreakoutAlerts(options?: { fresh?: boolean }): Promise<BreakoutAlerts | null> {
+    const endpoint = '/analysis/retail/breakout/alerts';
+    if (options?.fresh) {
+      return fetchApiClient<BreakoutAlerts>(endpoint).catch(() => null);
     }
+    return fetchApi<BreakoutAlerts>(endpoint, undefined, 60).catch(() => null);
   },
 
-  async getRiskReward(symbol: string): Promise<RiskRewardAnalysis | null> {
-    try {
-      return await fetchApi<RiskRewardAnalysis>(`/analysis/retail/risk-reward/${symbol}`, undefined, 60);
-    } catch {
-      return null;
+  async getRiskReward(symbol: string, options?: { days?: number; portfolio_size?: number; risk_percent?: number; fresh?: boolean }): Promise<RiskRewardAnalysis | null> {
+    const params: QueryParams = {};
+    if (options?.days !== undefined) params.days = String(options.days);
+    if (options?.portfolio_size !== undefined) params.portfolio_size = String(options.portfolio_size);
+    if (options?.risk_percent !== undefined) params.risk_percent = String(options.risk_percent);
+
+    const endpoint = `/analysis/retail/risk-reward/${symbol}`;
+    if (options?.fresh) {
+      return fetchApiClient<RiskRewardAnalysis>(endpoint, params).catch(() => null);
     }
+    return fetchApi<RiskRewardAnalysis>(endpoint, params, 60).catch(() => null);
   },
 
-  async getSectorRotation(): Promise<SectorRotation | null> {
-    try {
-      return await fetchApi<SectorRotation>('/analysis/retail/sector-rotation', undefined, 300);
-    } catch {
-      return null;
+  async getSectorRotation(options?: { fresh?: boolean }): Promise<SectorRotation | null> {
+    const endpoint = '/analysis/retail/sector-rotation';
+    if (options?.fresh) {
+      return fetchApiClient<SectorRotation>(endpoint).catch(() => null);
     }
+    return fetchApi<SectorRotation>(endpoint, undefined, 300).catch(() => null);
   },
 
-  async getRetailOpportunity(): Promise<RetailOpportunity> {
+  async getRetailOpportunity(options?: { fresh?: boolean; min_score?: number; sector?: string; max_results?: number }): Promise<RetailOpportunity> {
     const [multibagger, breakout, sectorRotation] = await Promise.all([
-      this.getMultibaggerScan(),
-      this.getBreakoutAlerts(),
-      this.getSectorRotation(),
+      this.getMultibaggerScan({ ...options, fresh: options?.fresh }),
+      this.getBreakoutAlerts({ fresh: options?.fresh }),
+      this.getSectorRotation({ fresh: options?.fresh }),
     ]);
     return { multibagger, breakout, sectorRotation };
+  },
+
+  async getTrending(options?: { fresh?: boolean }): Promise<TrendingItem[]> {
+    const endpoint = '/main/trending';
+    const transform = (payload: unknown): TrendingItem[] => {
+      if (!payload) return [];
+      const rawArray = Array.isArray((payload as { data?: unknown })?.data)
+        ? (payload as { data: unknown[] }).data
+        : Array.isArray(payload)
+          ? (payload as unknown[])
+          : [];
+
+      return rawArray
+        .map((item): TrendingItem | null => {
+          if (!item || typeof item !== 'object') return null;
+          const candidate = item as Record<string, unknown>;
+          const symbol = String(candidate.symbol || candidate.code || candidate.ticker || '');
+          if (!symbol) return null;
+          const nameVal = candidate.name || candidate.company_name || candidate.title;
+          const score = typeof candidate.score === 'number' ? candidate.score : undefined;
+          const mentions = typeof candidate.mentions === 'number' ? candidate.mentions : undefined;
+          return {
+            symbol,
+            name: nameVal ? String(nameVal) : undefined,
+            score,
+            mentions,
+          };
+        })
+        .filter((t): t is TrendingItem => Boolean(t));
+    };
+
+    if (options?.fresh) {
+      return fetchApiClient<unknown>(endpoint).then(transform).catch(() => []);
+    }
+    return fetchApi<unknown>(endpoint, undefined, 60).then(transform).catch(() => []);
+  },
+
+  async getTopBroker(options?: { sort?: string; order?: string; period?: string; marketType?: string; fresh?: boolean }): Promise<TopBrokerItem[]> {
+    const params: QueryParams = {
+      sort: options?.sort ?? 'TB_SORT_BY_TOTAL_VALUE',
+      order: options?.order ?? 'ORDER_BY_DESC',
+      period: options?.period ?? 'TB_PERIOD_LAST_1_DAY',
+      marketType: options?.marketType ?? 'MARKET_TYPE_ALL',
+    };
+
+    const endpoint = '/market-detector/top-broker';
+    const transform = (payload: unknown): TopBrokerItem[] => {
+      const raw = Array.isArray((payload as { data?: unknown })?.data)
+        ? (payload as { data: unknown[] }).data
+        : Array.isArray(payload)
+          ? (payload as unknown[])
+          : [];
+
+      return raw
+        .map((item): TopBrokerItem | null => {
+          if (!item || typeof item !== 'object') return null;
+          const obj = item as Record<string, unknown>;
+          const broker_code = String(obj.broker_code || obj.code || '');
+          if (!broker_code) return null;
+          return {
+            broker_code,
+            broker_name: obj.broker_name ? String(obj.broker_name) : undefined,
+            total_value: Number(obj.total_value || obj.value || 0),
+            net_value: obj.net_value !== undefined ? Number(obj.net_value) : undefined,
+            total_volume: obj.total_volume !== undefined ? Number(obj.total_volume) : undefined,
+          };
+        })
+        .filter((b): b is TopBrokerItem => Boolean(b));
+    };
+
+    if (options?.fresh) {
+      return fetchApiClient<unknown>(endpoint, params).then(transform).catch(() => []);
+    }
+    return fetchApi<unknown>(endpoint, params, 60).then(transform).catch(() => []);
+  },
+
+  async getTopStock(options: { start: string; end: string; investorType?: string; marketType?: string; valueType?: string; page?: number; fresh?: boolean }): Promise<TopStockItem[]> {
+    const params: QueryParams = {
+      start: options.start,
+      end: options.end,
+      investorType: options.investorType ?? 'INVESTOR_TYPE_ALL',
+      marketType: options.marketType ?? 'MARKET_TYPE_ALL',
+      valueType: options.valueType ?? 'VALUE_TYPE_TOTAL',
+    };
+    if (options.page !== undefined) params.page = String(options.page);
+
+    const endpoint = '/market-detector/top-stock';
+    const transform = (payload: unknown): TopStockItem[] => {
+      const raw = Array.isArray((payload as { data?: unknown })?.data)
+        ? (payload as { data: unknown[] }).data
+        : Array.isArray(payload)
+          ? (payload as unknown[])
+          : [];
+
+      return raw
+        .map((item): TopStockItem | null => {
+          if (!item || typeof item !== 'object') return null;
+          const obj = item as Record<string, unknown>;
+          const symbol = String(obj.symbol || obj.code || '');
+          if (!symbol) return null;
+          return {
+            symbol,
+            name: obj.name ? String(obj.name) : undefined,
+            total_value: obj.total_value !== undefined ? Number(obj.total_value) : undefined,
+            total_volume: obj.total_volume !== undefined ? Number(obj.total_volume) : undefined,
+            total_frequency: obj.total_frequency !== undefined ? Number(obj.total_frequency) : undefined,
+            investor_type: obj.investor_type ? String(obj.investor_type) : undefined,
+            market_type: obj.market_type ? String(obj.market_type) : undefined,
+          };
+        })
+        .filter((s): s is TopStockItem => Boolean(s));
+    };
+
+    if (options.fresh) {
+      return fetchApiClient<unknown>(endpoint, params).then(transform).catch(() => []);
+    }
+    return fetchApi<unknown>(endpoint, params, 60).then(transform).catch(() => []);
+  },
+
+  async getBrokerActivity(brokerCode: string, options: { from: string; to: string; page?: number; limit?: number; transactionType?: string; marketBoard?: string; investorType?: string; fresh?: boolean }): Promise<BrokerActivity | null> {
+    const params: QueryParams = {
+      from: options.from,
+      to: options.to,
+      transactionType: options.transactionType ?? 'TRANSACTION_TYPE_NET',
+      marketBoard: options.marketBoard ?? 'MARKET_BOARD_ALL',
+      investorType: options.investorType ?? 'INVESTOR_TYPE_ALL',
+    };
+    if (options.page !== undefined) params.page = String(options.page);
+    if (options.limit !== undefined) params.limit = String(options.limit);
+
+    const endpoint = `/market-detector/broker-activity/${brokerCode}`;
+    const fetcher = options.fresh ? fetchApiClient<BrokerActivity> : fetchApi<BrokerActivity>;
+    return fetcher(endpoint, params, 60).catch(() => null);
+  },
+
+  async getBrokerSummaryRange(symbol: string, options: { from: string; to: string; transactionType?: string; marketBoard?: string; investorType?: string; limit?: number; fresh?: boolean }): Promise<BrokerSummary[]> {
+    const params: QueryParams = {
+      from: options.from,
+      to: options.to,
+      transactionType: options.transactionType ?? 'TRANSACTION_TYPE_NET',
+      marketBoard: options.marketBoard ?? 'MARKET_BOARD_ALL',
+      investorType: options.investorType ?? 'INVESTOR_TYPE_ALL',
+    };
+    if (options.limit !== undefined) params.limit = String(options.limit);
+
+    const endpoint = `/market-detector/broker-summary/${symbol}`;
+    const fetcher = options.fresh ? fetchApiClient<BrokerSummaryApiResponse> : fetchApi<BrokerSummaryApiResponse>;
+    return fetcher(endpoint, params, 60)
+      .then(transformBrokerSummary)
+      .catch(() => []);
+  },
+
+  async getStockInfoDetail(symbol: string, options?: { fresh?: boolean }): Promise<StockInfoDetail | null> {
+    const endpoint = `/emiten/${symbol}/info`;
+    const fetcher = options?.fresh ? fetchApiClient<StockInfoDetail> : fetchApi<StockInfoDetail>;
+    return fetcher(endpoint, undefined, 0).catch(() => null);
+  },
+
+  async getOrderbook(symbol: string, options?: { fresh?: boolean }): Promise<Orderbook | null> {
+    const endpoint = `/emiten/${symbol}/orderbook`;
+    const fetcher = options?.fresh ? fetchApiClient<Orderbook> : fetchApi<Orderbook>;
+    return fetcher(endpoint, undefined, 0).catch(() => null);
+  },
+
+  async getHistoricalSummary(symbol: string, options: { startDate: string; endDate: string; period?: string; fresh?: boolean }): Promise<HistoricalSummary | null> {
+    const params: QueryParams = {
+      startDate: options.startDate,
+      endDate: options.endDate,
+      period: options.period ?? 'HS_PERIOD_DAILY',
+      limit: '100',
+    };
+    const endpoint = `/emiten/${symbol}/historical-summary`;
+    const fetcher = options.fresh ? fetchApiClient<HistoricalSummary> : fetchApi<HistoricalSummary>;
+    return fetcher(endpoint, params, 0).catch(() => null);
+  },
+
+  async getBrokerTradeChart(symbol: string, options?: { fresh?: boolean }): Promise<BrokerTradeChartPoint[]> {
+    const endpoint = `/emiten/${symbol}/broker-trade-chart`;
+    const fetcher = options?.fresh ? fetchApiClient<BrokerTradeChartPoint[]> : fetchApi<BrokerTradeChartPoint[]>;
+    return fetcher(endpoint, undefined, 0).catch(() => []);
+  },
+
+  async getSeasonality(symbol: string, options?: { fresh?: boolean }): Promise<SeasonalityPoint[]> {
+    const endpoint = `/emiten/${symbol}/seasonality`;
+    const fetcher = options?.fresh ? fetchApiClient<SeasonalityPoint[]> : fetchApi<SeasonalityPoint[]>;
+    return fetcher(endpoint, undefined, 0).catch(() => []);
+  },
+
+  async getSubsidiary(symbol: string, options?: { fresh?: boolean }): Promise<unknown> {
+    const endpoint = `/emiten/${symbol}/subsidiary`;
+    const fetcher = options?.fresh ? fetchApiClient<unknown> : fetchApi<unknown>;
+    return fetcher(endpoint, undefined, 0).catch(() => null);
+  },
+
+  async getKeyStatsDetail(symbol: string, options?: { fresh?: boolean }): Promise<KeyStats | null> {
+    const endpoint = `/emiten/${symbol}/keystats`;
+    const fetcher = options?.fresh ? fetchApiClient<KeyStats> : fetchApi<KeyStats>;
+    return fetcher(endpoint, undefined, 0).catch(() => null);
+  },
+
+  async getFinancials(symbol: string, options?: { fresh?: boolean }): Promise<unknown> {
+    const endpoint = `/emiten/${symbol}/financials`;
+    const fetcher = options?.fresh ? fetchApiClient<unknown> : fetchApi<unknown>;
+    return fetcher(endpoint, undefined, 0).catch(() => null);
+  },
+
+  async getHoldingComposition(symbol: string, options?: { fresh?: boolean }): Promise<HoldingComposition[]> {
+    const endpoint = `/emiten/${symbol}/profile/holding-composition`;
+    const fetcher = options?.fresh ? fetchApiClient<HoldingComposition[]> : fetchApi<HoldingComposition[]>;
+    return fetcher(endpoint, undefined, 0).catch(() => []);
+  },
+
+  async getForeignOwnership(symbol: string, options?: { fresh?: boolean }): Promise<ForeignOwnership[]> {
+    const endpoint = `/emiten/${symbol}/foreign-ownership`;
+    const fetcher = options?.fresh ? fetchApiClient<ForeignOwnership[]> : fetchApi<ForeignOwnership[]>;
+    return fetcher(endpoint, undefined, 0).catch(() => []);
+  },
+
+  async getInsider(symbol: string, options?: { fresh?: boolean }): Promise<InsiderTransaction[]> {
+    const endpoint = `/emiten/${symbol}/insider`;
+    const fetcher = options?.fresh ? fetchApiClient<InsiderTransaction[]> : fetchApi<InsiderTransaction[]>;
+    return fetcher(endpoint, undefined, 0).catch(() => []);
+  },
+
+  async getWhaleTransactions(symbol: string, options?: { min_lot?: number; fresh?: boolean }): Promise<WhaleTransactions | null> {
+    const params: QueryParams = {};
+    if (options?.min_lot !== undefined) params.min_lot = String(options.min_lot);
+
+    const endpoint = `/analysis/whale-transactions/${symbol}`;
+    const fetcher = options?.fresh ? fetchApiClient<WhaleTransactions> : fetchApi<WhaleTransactions>;
+    return fetcher(endpoint, params, 0).catch(() => null);
   },
 };

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, TrendingUp, TrendingDown, Activity, Users, ArrowUpRight, ArrowDownRight, BarChart3, LineChart, Zap, Target, Shield, Rocket } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, TrendingUp, TrendingDown, Activity, Users, ArrowUpRight, ArrowDownRight, LineChart, Zap, Target, Shield, Rocket, RefreshCw, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -87,6 +87,37 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; desc: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [marketData, setMarketData] = useState(initialData);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const refreshMarketData = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch('/api/market', { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error('Failed to refresh market data');
+      }
+      const data = await response.json();
+      setMarketData({
+        gainers: data.gainers || [],
+        losers: data.losers || [],
+        mostActive: data.mostActive || [],
+        foreignBuy: data.foreignBuy || [],
+      });
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshMarketData();
+    const interval = setInterval(refreshMarketData, 30000);
+    return () => clearInterval(interval);
+  }, [refreshMarketData]);
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -109,72 +140,45 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary text-primary-foreground">
-                <BarChart3 className="w-6 h-6" />
+      <main className="container mx-auto px-4 py-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">StockAnalyzer</h1>
+            <p className="text-sm text-muted-foreground">Cari saham cepat dan lihat pergerakan pasar</p>
+          </div>
+          <div className="relative w-full md:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Cari saham (contoh: BBCA, TLKM)..."
+              className="pl-10 bg-secondary"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+            {searchResults.length > 0 && (
+              <div className="absolute top-full mt-2 w-full bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                {searchResults.map((result) => (
+                  <Link
+                    key={result.id}
+                    href={`/stock/${result.name}`}
+                    className="flex items-center justify-between p-3 hover:bg-accent transition-colors"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSearchResults([]);
+                    }}
+                  >
+                    <div>
+                      <span className="font-bold">{result.name}</span>
+                      <p className="text-xs text-muted-foreground">{result.desc}</p>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
+                  </Link>
+                ))}
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">StockAnalyzer</h1>
-                <p className="text-xs text-muted-foreground">IDX Market Intelligence</p>
-              </div>
-            </div>
-
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Cari saham (contoh: BBCA, TLKM)..."
-                className="pl-10 bg-secondary"
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-              />
-              {searchResults.length > 0 && (
-                <div className="absolute top-full mt-2 w-full bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-                  {searchResults.map((result) => (
-                    <Link
-                      key={result.id}
-                      href={`/stock/${result.name}`}
-                      className="flex items-center justify-between p-3 hover:bg-accent transition-colors"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setSearchResults([]);
-                      }}
-                    >
-                      <div>
-                        <span className="font-bold">{result.name}</span>
-                        <p className="text-xs text-muted-foreground">{result.desc}</p>
-                      </div>
-                      <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <nav className="hidden md:flex items-center gap-2">
-                <Link href="/retail-opportunity">
-                  <Button variant="ghost" size="sm">
-                    <Rocket className="w-4 h-4 mr-2" />
-                    Retail Opportunity
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm">
-                  <LineChart className="w-4 h-4 mr-2" />
-                  Screener
-                </Button>
-                <Button variant="ghost" size="sm">
-                  <Target className="w-4 h-4 mr-2" />
-                  Watchlist
-                </Button>
-              </nav>
+            )}
           </div>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-6">
         <div className="grid gap-4 md:grid-cols-4 mb-6">
           <Card className="bg-gradient-to-br from-bullish/10 to-bullish/5 border-bullish/20">
             <CardContent className="p-4">
@@ -182,10 +186,10 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
                 <div>
                   <p className="text-sm text-muted-foreground">Top Gainer</p>
                   <p className="text-2xl font-bold text-bullish">
-                    {initialData.gainers[0]?.symbol || '-'}
+                    {marketData.gainers[0]?.symbol || '-'}
                   </p>
                   <p className="text-sm text-bullish">
-                    +{initialData.gainers[0]?.change_percentage?.toFixed(2) || '0'}%
+                    +{marketData.gainers[0]?.change_percentage?.toFixed(2) || '0'}%
                   </p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-bullish/50" />
@@ -199,10 +203,10 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
                 <div>
                   <p className="text-sm text-muted-foreground">Top Loser</p>
                   <p className="text-2xl font-bold text-bearish">
-                    {initialData.losers[0]?.symbol || '-'}
+                    {marketData.losers[0]?.symbol || '-'}
                   </p>
                   <p className="text-sm text-bearish">
-                    {initialData.losers[0]?.change_percentage?.toFixed(2) || '0'}%
+                    {marketData.losers[0]?.change_percentage?.toFixed(2) || '0'}%
                   </p>
                 </div>
                 <TrendingDown className="w-8 h-8 text-bearish/50" />
@@ -216,10 +220,10 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
                 <div>
                   <p className="text-sm text-muted-foreground">Most Active</p>
                   <p className="text-2xl font-bold text-chart-2">
-                    {initialData.mostActive[0]?.symbol || '-'}
+                    {marketData.mostActive[0]?.symbol || '-'}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Vol: {formatNumber(initialData.mostActive[0]?.volume || 0)}
+                    Vol: {formatNumber(marketData.mostActive[0]?.volume || 0)}
                   </p>
                 </div>
                 <Activity className="w-8 h-8 text-chart-2/50" />
@@ -233,10 +237,10 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
                 <div>
                   <p className="text-sm text-muted-foreground">Foreign Buy</p>
                   <p className="text-2xl font-bold text-chart-5">
-                    {initialData.foreignBuy[0]?.symbol || '-'}
+                    {marketData.foreignBuy[0]?.symbol || '-'}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Net: {formatNumber(initialData.foreignBuy[0]?.value || 0)}
+                    Net: {formatNumber(marketData.foreignBuy[0]?.value || 0)}
                   </p>
                 </div>
                 <Users className="w-8 h-8 text-chart-5/50" />
@@ -277,28 +281,46 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
         </div>
 
         <Tabs defaultValue="gainers" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 max-w-xl">
-            <TabsTrigger value="gainers" className="gap-2">
-              <TrendingUp className="w-4 h-4" />
-              <span className="hidden sm:inline">Top Gainers</span>
-            </TabsTrigger>
-            <TabsTrigger value="losers" className="gap-2">
-              <TrendingDown className="w-4 h-4" />
-              <span className="hidden sm:inline">Top Losers</span>
-            </TabsTrigger>
-            <TabsTrigger value="active" className="gap-2">
-              <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">Most Active</span>
-            </TabsTrigger>
-            <TabsTrigger value="foreign" className="gap-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Foreign Flow</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 max-w-xl">
+              <TabsTrigger value="gainers" className="gap-2">
+                <TrendingUp className="w-4 h-4" />
+                <span className="hidden sm:inline">Top Gainers</span>
+              </TabsTrigger>
+              <TabsTrigger value="losers" className="gap-2">
+                <TrendingDown className="w-4 h-4" />
+                <span className="hidden sm:inline">Top Losers</span>
+              </TabsTrigger>
+              <TabsTrigger value="active" className="gap-2">
+                <Activity className="w-4 h-4" />
+                <span className="hidden sm:inline">Most Active</span>
+              </TabsTrigger>
+              <TabsTrigger value="foreign" className="gap-2">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Foreign Flow</span>
+              </TabsTrigger>
+            </TabsList>
+            <div className="flex items-center gap-3">
+              {lastUpdated && (
+                <span className="text-xs text-muted-foreground">
+                  Update: {lastUpdated.toLocaleTimeString('id-ID')}
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={refreshMarketData}
+                disabled={isRefreshing}
+                aria-label="Refresh market data"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
 
           <TabsContent value="gainers">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {initialData.gainers.slice(0, 12).map((stock) => (
+              {marketData.gainers.slice(0, 12).map((stock) => (
                 <StockCard key={stock.symbol} stock={stock} />
               ))}
             </div>
@@ -306,7 +328,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 
           <TabsContent value="losers">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {initialData.losers.slice(0, 12).map((stock) => (
+              {marketData.losers.slice(0, 12).map((stock) => (
                 <StockCard key={stock.symbol} stock={stock} />
               ))}
             </div>
@@ -314,7 +336,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 
           <TabsContent value="active">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {initialData.mostActive.slice(0, 12).map((stock) => (
+              {marketData.mostActive.slice(0, 12).map((stock) => (
                 <StockCard key={stock.symbol} stock={stock} />
               ))}
             </div>
@@ -322,7 +344,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 
           <TabsContent value="foreign">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {initialData.foreignBuy.slice(0, 12).map((stock) => (
+              {marketData.foreignBuy.slice(0, 12).map((stock) => (
                 <StockCard key={stock.symbol} stock={stock} />
               ))}
             </div>

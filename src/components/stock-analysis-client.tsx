@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, TrendingUp, TrendingDown, Activity, Users, BarChart3, 
@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { StockProfile, BrokerSummary, TopMover, BandarAnalysis, RiskRewardAnalysis } from '@/lib/datasaham-api';
+import { StockProfile, BrokerSummary, TopMover, BandarAnalysis, RiskRewardAnalysis, ChartTimeframe, MarketSentiment, StockInfoDetail, Orderbook, HistoricalSummary, SeasonalityPoint, KeyStats, HoldingComposition, ForeignOwnership, InsiderTransaction } from '@/lib/datasaham-api';
 import { 
   OHLCV, calculateTechnicalSummary, TechnicalSummary, TechnicalSignal 
 } from '@/lib/technical-analysis';
@@ -28,6 +28,15 @@ interface StockAnalysisClientProps {
   stockQuote: TopMover | null;
   bandarAnalysis: BandarAnalysis;
   riskReward: RiskRewardAnalysis | null;
+  sentiment: MarketSentiment | null;
+  info: StockInfoDetail | null;
+  orderbook: Orderbook | null;
+  historicalSummary: HistoricalSummary | null;
+  seasonality: SeasonalityPoint[];
+  keyStats: KeyStats | null;
+  foreignOwnership: ForeignOwnership[];
+  holdingComposition: HoldingComposition[];
+  insider: InsiderTransaction[];
 }
 
 function generateMockOHLCV(basePrice: number = 10000, days: number = 100): OHLCV[] {
@@ -142,14 +151,103 @@ function formatPrice(price: number): string {
   return price.toLocaleString('id-ID');
 }
 
-export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote, bandarAnalysis, riskReward }: StockAnalysisClientProps) {
+function sentimentTone(status?: string) {
+  if (!status) return 'neutral';
+  if (status.includes('EUPHORIC') || status.includes('BULLISH') || status.includes('ACCUMULAT')) return 'bullish';
+  if (status.includes('PANIC') || status.includes('BEAR') || status.includes('EXIT') || status.includes('DISTRIB')) return 'bearish';
+  return 'neutral';
+}
+
+function toneClass(tone: string) {
+  if (tone === 'bullish') return 'text-bullish';
+  if (tone === 'bearish') return 'text-bearish';
+  return 'text-neutral';
+}
+
+function MetricRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold">{value}</span>
+    </div>
+  );
+}
+
+export function StockAnalysisClient({
+  symbol,
+  profile,
+  brokerSummary,
+  stockQuote,
+  bandarAnalysis,
+  riskReward,
+  sentiment,
+  info,
+  orderbook,
+  historicalSummary,
+  seasonality,
+  keyStats,
+  foreignOwnership,
+  holdingComposition,
+  insider,
+}: StockAnalysisClientProps) {
+  const [chartData, setChartData] = useState<OHLCV[]>([]);
+  const [liveSentiment, setLiveSentiment] = useState<MarketSentiment | null>(sentiment);
+  const [isSentimentLoading, setIsSentimentLoading] = useState(false);
+  const [sentimentUpdatedAt, setSentimentUpdatedAt] = useState<Date | null>(null);
+
+  const fetchChartData = useCallback(async (tf: ChartTimeframe = 'daily') => {
+    try {
+      const query = new URLSearchParams({ limit: '0' });
+      const response = await fetch(`/api/chart/${symbol}/${tf}?${query.toString()}`, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error('Failed to fetch chart');
+      }
+      const payload = await response.json();
+      const candles: OHLCV[] = Array.isArray(payload.data) ? payload.data : [];
+      const sorted = [...candles].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      setChartData(sorted);
+    } catch (error) {
+      console.error(error);
+      setChartData([]);
+    }
+  }, [symbol]);
+
+  const refreshSentiment = useCallback(async () => {
+    setIsSentimentLoading(true);
+    try {
+      const response = await fetch(`/api/sentiment/${symbol}?days=0`, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error('Failed to fetch sentiment');
+      }
+      const payload = await response.json();
+      setLiveSentiment(payload.data || null);
+      setSentimentUpdatedAt(new Date());
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSentimentLoading(false);
+    }
+  }, [symbol]);
+
+  useEffect(() => {
+    fetchChartData('daily');
+  }, [fetchChartData]);
+
+  useEffect(() => {
+    refreshSentiment();
+    const interval = setInterval(refreshSentiment, 30000);
+    return () => clearInterval(interval);
+  }, [refreshSentiment]);
+
   const currentPrice = stockQuote?.last_price || 0;
-  const priceChange = stockQuote?.change || 0;
-  const priceChangePercent = stockQuote?.change_percentage || 0;
+  const infoPrice = info?.last || currentPrice;
+  const priceChange = info?.change ?? stockQuote?.change ?? 0;
+  const priceChangePercent = info?.change_percentage ?? stockQuote?.change_percentage ?? 0;
   
-  const mockData = useMemo(() => generateMockOHLCV(currentPrice || 10000, 100), [currentPrice]);
+  const mockData = useMemo(() => generateMockOHLCV(infoPrice || 10000, 100), [infoPrice]);
+  const priceSeries = chartData.length ? chartData : mockData;
   
-  const technicalSummary = useMemo(() => calculateTechnicalSummary(mockData), [mockData]);
+  const technicalSummary = useMemo(() => calculateTechnicalSummary(priceSeries), [priceSeries]);
   
   const fundamentalSummary = useMemo(() => analyzeFundamentals({
     per: 15 + Math.random() * 10,
@@ -166,12 +264,12 @@ export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote
   , [brokerSummary]);
   
   const quantAnalysis = useMemo(() => 
-    generateQuantSignal(mockData, technicalSummary, fundamentalSummary, bandarmologySummary)
-  , [mockData, technicalSummary, fundamentalSummary, bandarmologySummary]);
+    generateQuantSignal(priceSeries, technicalSummary, fundamentalSummary, bandarmologySummary)
+  , [priceSeries, technicalSummary, fundamentalSummary, bandarmologySummary]);
   
   const prediction = useMemo(() => 
-    predictPriceMovement(mockData, technicalSummary, fundamentalSummary, bandarmologySummary)
-  , [mockData, technicalSummary, fundamentalSummary, bandarmologySummary]);
+    predictPriceMovement(priceSeries, technicalSummary, fundamentalSummary, bandarmologySummary)
+  , [priceSeries, technicalSummary, fundamentalSummary, bandarmologySummary]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -206,7 +304,7 @@ export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote
               <div className="text-right">
                 {stockQuote ? (
                   <>
-                    <p className="text-2xl font-bold font-mono">{formatPrice(currentPrice)}</p>
+                    <p className="text-2xl font-bold font-mono">{formatPrice(infoPrice || currentPrice)}</p>
                     <div className={`flex items-center justify-end gap-1 ${priceChange >= 0 ? 'text-bullish' : 'text-bearish'}`}>
                       {priceChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                       <span className="font-medium">
@@ -214,7 +312,7 @@ export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Vol: {formatNumber(stockQuote.volume)} | Val: {formatCurrency(stockQuote.value)}
+                      Vol: {formatNumber(info?.volume || stockQuote.volume)} | Val: {formatCurrency(info?.value || stockQuote.value)}
                     </p>
                   </>
                 ) : (
@@ -332,6 +430,99 @@ export function StockAnalysisClient({ symbol, profile, brokerSummary, stockQuote
                 <div className="text-right">
                   <p className="text-2xl font-bold">{(prediction.probability * 100).toFixed(0)}%</p>
                   <p className="text-xs text-muted-foreground">Probability</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Info & Key Stats</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-muted-foreground text-xs">Last</p>
+                <p className="font-semibold">{infoPrice ? formatPrice(infoPrice) : '-'}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Volume</p>
+                <p className="font-semibold">{formatNumber(info?.volume || stockQuote?.volume || 0)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Value</p>
+                <p className="font-semibold">{formatCurrency(info?.value || stockQuote?.value || 0)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Market Cap</p>
+                <p className="font-semibold">{formatCurrency(info?.market_cap || 0)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">High / Low</p>
+                <p className="font-semibold">
+                  {info?.high ? formatPrice(info.high) : '-'} / {info?.low ? formatPrice(info.low) : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Sector</p>
+                <p className="font-semibold">{info?.sector || '-'}</p>
+              </div>
+                {keyStats && (
+                <>
+                  <div>
+                    <p className="text-muted-foreground text-xs">PE</p>
+                    <p className="font-semibold">{keyStats.valuation?.pe_ratio ?? '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">PBV</p>
+                    <p className="font-semibold">{keyStats.valuation?.pb_ratio ?? '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">ROE</p>
+                    <p className="font-semibold">{keyStats.profitability?.roe ?? '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Net Margin</p>
+                    <p className="font-semibold">{keyStats.profitability?.net_margin ?? '-'}</p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Seasonality & Ownership</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Seasonality (avg return)</p>
+                <div className="flex flex-wrap gap-2">
+                  {seasonality.slice(0, 6).map((s) => (
+                    <Badge key={s.month} variant="outline" className={s.average_return >= 0 ? 'text-bullish' : 'text-bearish'}>
+                      {s.month}: {s.average_return.toFixed(2)}%
+                    </Badge>
+                  ))}
+                  {seasonality.length === 0 && <p className="text-muted-foreground text-xs">Tidak ada data</p>}
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Foreign Ownership (latest)</p>
+                <p className="font-semibold">
+                  {foreignOwnership.length > 0 ? `${formatNumber(foreignOwnership[0].ownership)} @ ${foreignOwnership[0].date}` : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Top Holders</p>
+                <div className="flex flex-wrap gap-2">
+                  {holdingComposition.slice(0, 3).map((h, idx) => (
+                    <Badge key={`${h.holder}-${idx}`} variant="outline">
+                      {h.holder}: {h.percentage.toFixed(2)}%
+                    </Badge>
+                  ))}
+                  {holdingComposition.length === 0 && <p className="text-muted-foreground text-xs">Tidak ada data</p>}
                 </div>
               </div>
             </CardContent>
