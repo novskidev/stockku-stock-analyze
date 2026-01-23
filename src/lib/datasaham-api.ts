@@ -3,7 +3,7 @@ const API_KEY = process.env.DATASAHAM_API_KEY || 'sbk_8fbb3824f0f13e617109e37c66
 
 type QueryParamValue = string | string[] | undefined;
 
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
@@ -49,6 +49,25 @@ async function fetchApi<T>(endpoint: string, params?: QueryParams, revalidate: n
   return result.data as T;
 }
 
+async function fetchApiFull<T>(endpoint: string, params?: QueryParams, revalidate: number = 30): Promise<ApiResponse<T>> {
+  const url = new URL(`${API_BASE}${endpoint}`);
+  appendSearchParams(url, params);
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      'x-api-key': API_KEY,
+    },
+    next: { revalidate },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const result: ApiResponse<T> = await response.json();
+  return result;
+}
+
 export async function fetchApiClient<T>(endpoint: string, params?: QueryParams): Promise<T> {
   const url = new URL(`${API_BASE}${endpoint}`);
   appendSearchParams(url, params);
@@ -71,6 +90,25 @@ export async function fetchApiClient<T>(endpoint: string, params?: QueryParams):
   }
 
   return result.data as T;
+}
+
+export async function fetchApiClientFull<T>(endpoint: string, params?: QueryParams): Promise<ApiResponse<T>> {
+  const url = new URL(`${API_BASE}${endpoint}`);
+  appendSearchParams(url, params);
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      'x-api-key': API_KEY,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const result: ApiResponse<T> = await response.json();
+  return result;
 }
 
 export interface SearchResult {
@@ -215,6 +253,118 @@ export interface MarketSentiment {
   summary?: string;
 }
 
+export interface KeyStatsItem {
+  fitem: {
+    id: string;
+    name: string;
+    value: string;
+  };
+  hidden_graph_ico: boolean;
+  is_new_update: boolean;
+}
+
+export interface KeyStatsGroup {
+  keystats_name: string;
+  fin_name_results: KeyStatsItem[];
+}
+
+export interface KeyStats {
+  closure_fin_items_results: KeyStatsGroup[];
+  financial_year_parent?: unknown;
+  stats?: Record<string, string>;
+  info?: string;
+  dividend_group?: unknown;
+  financial_report_currency?: string[];
+}
+
+export interface TechnicalIndicatorGroup {
+  sma?: {
+    sma5?: number | null;
+    sma10?: number | null;
+    sma20?: number | null;
+    sma50?: number | null;
+    sma100?: number | null;
+    sma200?: number | null;
+  };
+  ema?: {
+    ema5?: number | null;
+    ema10?: number | null;
+    ema20?: number | null;
+    ema50?: number | null;
+    ema100?: number | null;
+    ema200?: number | null;
+  };
+  rsi?: {
+    value?: number | null;
+    signal?: string;
+    period?: number;
+  };
+  macd?: {
+    macdLine?: number | null;
+    signalLine?: number | null;
+    histogram?: number | null;
+    signal?: string;
+  };
+  stochastic?: {
+    k?: number | null;
+    d?: number | null;
+    signal?: string;
+  };
+  bollingerBands?: {
+    upper?: number | null;
+    middle?: number | null;
+    lower?: number | null;
+    bandwidth?: number | null;
+    percentB?: number | null;
+    signal?: string;
+  };
+  atr?: {
+    value?: number | null;
+    percentage?: number | null;
+    volatility?: string;
+  };
+  obv?: {
+    value?: number | null;
+    trend?: string;
+  };
+  vwap?: {
+    value?: number | null;
+    signal?: string;
+  };
+}
+
+export interface TechnicalAnalysis {
+  symbol: string;
+  timeframe?: string;
+  lastPrice?: number | null;
+  lastUpdate?: string;
+  dataPoints?: number;
+  indicators?: TechnicalIndicatorGroup;
+  trend?: {
+    shortTerm?: string;
+    mediumTerm?: string;
+    longTerm?: string;
+    overallTrend?: string;
+    trendStrength?: number;
+  };
+  supportResistance?: {
+    supports?: Array<{ level: number; strength?: string }>;
+    resistances?: Array<{ level: number; strength?: string }>;
+    pivotPoint?: number | null;
+  };
+  signal?: {
+    action?: string;
+    confidence?: number;
+    reasons?: string[];
+  };
+  summary?: {
+    bullishSignals?: number;
+    bearishSignals?: number;
+    neutralSignals?: number;
+    recommendation?: string;
+  };
+}
+
 export interface StockInfoDetail {
   symbol: string;
   name?: string;
@@ -231,6 +381,40 @@ export interface StockInfoDetail {
   sector?: string;
   sub_sector?: string;
   industry?: string;
+}
+
+export type InsightStatus = 'good' | 'bad' | 'neutral' | 'NA';
+
+export interface InsightItem {
+  name: string;
+  statement: string;
+  shortStatement?: string;
+  status: InsightStatus | string;
+  value?: number;
+  benchmark?: number;
+  difference?: number;
+  differencePercent?: number;
+  criteria?: string;
+}
+
+export interface InsightSummary {
+  totalInsights: number;
+  good: number;
+  bad: number;
+  neutral: number;
+  score: number;
+}
+
+export interface InsightsData {
+  symbol: string;
+  displayName?: string;
+  instrumentId?: string;
+  securityType?: string;
+  lastUpdated?: string;
+  summary?: InsightSummary;
+  categories?: Record<string, InsightItem[]>;
+  peers?: string[];
+  rawInsights?: unknown[];
 }
 
 export interface OrderbookLevel {
@@ -264,6 +448,26 @@ export interface SeasonalityPoint {
   median_return?: number;
   positive_months?: number;
   negative_months?: number;
+}
+
+export interface SubsidiaryItem {
+  company_name: string;
+  business_type: string;
+  location: string;
+  commercial_year: string;
+  total_assets: string;
+  percentage: string;
+  id: number;
+  operational_status: string;
+  period: string;
+  raw: unknown;
+}
+
+export interface SubsidiaryData {
+  subsidiaries: SubsidiaryItem[];
+  currency?: string;
+  last_updated_period?: string;
+  unit?: string;
 }
 
 export interface HoldingComposition {
@@ -349,6 +553,8 @@ export interface WhaleTransactions {
   }>;
   alerts?: string[];
 }
+
+export type WhaleTransactionsApiResponse = ApiResponse<WhaleTransactions>;
 
 export interface IpoMomentumItem {
   symbol: string;
@@ -602,7 +808,7 @@ export interface BandarPumpDump {
   company_name: string;
   analysis_date: string;
   risk_score: number;
-  status: 'SAFE' | 'WARNING' | 'DANGER' | 'PUMP_DETECTED' | 'DUMP_DETECTED';
+  status: 'SAFE' | 'WARNING' | 'DANGER' | 'PUMP_DETECTED' | 'DUMP_DETECTED' | 'LOW_RISK' | 'MEDIUM_RISK' | 'HIGH_RISK' | string;
   warnings: string[];
   pump_indicators: {
     price_surge: number;
@@ -1016,6 +1222,33 @@ export const datasahamApi = {
     return fetchApi<MarketSentiment>(endpoint, params, 60).catch(() => null);
   },
 
+  async getTechnicalAnalysis(
+    symbol: string,
+    options?: { timeframe?: string; period?: number; indicator?: string; fresh?: boolean }
+  ): Promise<TechnicalAnalysis | null> {
+    const params: QueryParams = {};
+    if (options?.timeframe) params.timeframe = options.timeframe;
+    if (options?.period !== undefined) params.period = String(options.period);
+    if (options?.indicator) params.indicator = options.indicator;
+
+    const endpoint = `/analysis/technical/${symbol}`;
+    const fetcher = options?.fresh ? fetchApiClient<TechnicalAnalysis> : fetchApi<TechnicalAnalysis>;
+    return fetcher(endpoint, params, 60).catch(() => null);
+  },
+
+  async getInsights(symbol: string, options?: { fresh?: boolean }): Promise<InsightsData | null> {
+    const endpoint = `/beta/insights/${symbol}`;
+
+    if (options?.fresh) {
+      return fetchApiClient<{ message?: string; data: InsightsData }>(endpoint)
+        .then(res => res.data)
+        .catch(() => null);
+    }
+    return fetchApi<{ message?: string; data: InsightsData }>(endpoint, undefined, 300)
+      .then(res => res.data)
+      .catch(() => null);
+  },
+
   async getIpoMomentum(options?: { fresh?: boolean }): Promise<IpoMomentum | null> {
     const endpoint = '/analysis/sentiment/ipo/momentum';
     if (options?.fresh) {
@@ -1080,12 +1313,13 @@ export const datasahamApi = {
       }
     },
 
-  async getBandarAccumulation(symbol: string): Promise<BandarAccumulation | null> {
-    try {
-      return await fetchApi<BandarAccumulation>(`/analysis/bandar/accumulation/${symbol}`, undefined, 60);
-    } catch {
-      return null;
-    }
+  async getBandarAccumulation(symbol: string, options?: { days?: number; fresh?: boolean }): Promise<BandarAccumulation | null> {
+    const params: QueryParams = {};
+    if (options?.days !== undefined) params.days = String(options.days);
+
+    const endpoint = `/analysis/bandar/accumulation/${symbol}`;
+    const fetcher = options?.fresh ? fetchApiClient<BandarAccumulation> : fetchApi<BandarAccumulation>;
+    return fetcher(endpoint, params, 60).catch(() => null);
   },
 
   async getBandarDistribution(symbol: string): Promise<BandarDistribution | null> {
@@ -1104,20 +1338,21 @@ export const datasahamApi = {
     }
   },
 
-  async getBandarPumpDump(symbol: string): Promise<BandarPumpDump | null> {
-    try {
-      return await fetchApi<BandarPumpDump>(`/analysis/bandar/pump-dump/${symbol}`, undefined, 60);
-    } catch {
-      return null;
-    }
+  async getBandarPumpDump(symbol: string, options?: { days?: number; fresh?: boolean }): Promise<BandarPumpDump | null> {
+    const params: QueryParams = {};
+    if (options?.days !== undefined) params.days = String(options.days);
+
+    const endpoint = `/analysis/bandar/pump-dump/${symbol}`;
+    const fetcher = options?.fresh ? fetchApiClient<BandarPumpDump> : fetchApi<BandarPumpDump>;
+    return fetcher(endpoint, params, 60).catch(() => null);
   },
 
-  async getBandarAnalysis(symbol: string): Promise<BandarAnalysis> {
+  async getBandarAnalysis(symbol: string, options?: { accumulationDays?: number; pumpDumpDays?: number }): Promise<BandarAnalysis> {
     const [accumulation, distribution, smartMoney, pumpDump] = await Promise.all([
-      this.getBandarAccumulation(symbol),
+      this.getBandarAccumulation(symbol, { days: options?.accumulationDays ?? 14 }),
       this.getBandarDistribution(symbol),
       this.getBandarSmartMoney(symbol),
-      this.getBandarPumpDump(symbol),
+      this.getBandarPumpDump(symbol, { days: options?.pumpDumpDays ?? 7 }),
     ]);
     return { accumulation, distribution, smartMoney, pumpDump };
   },
@@ -1359,9 +1594,9 @@ export const datasahamApi = {
     return fetcher(endpoint, undefined, 0).catch(() => []);
   },
 
-  async getSubsidiary(symbol: string, options?: { fresh?: boolean }): Promise<unknown> {
+  async getSubsidiary(symbol: string, options?: { fresh?: boolean }): Promise<SubsidiaryData | null> {
     const endpoint = `/emiten/${symbol}/subsidiary`;
-    const fetcher = options?.fresh ? fetchApiClient<unknown> : fetchApi<unknown>;
+    const fetcher = options?.fresh ? fetchApiClient<SubsidiaryData> : fetchApi<SubsidiaryData>;
     return fetcher(endpoint, undefined, 0).catch(() => null);
   },
 
@@ -1393,6 +1628,18 @@ export const datasahamApi = {
     const endpoint = `/emiten/${symbol}/insider`;
     const fetcher = options?.fresh ? fetchApiClient<InsiderTransaction[]> : fetchApi<InsiderTransaction[]>;
     return fetcher(endpoint, undefined, 0).catch(() => []);
+  },
+
+  async getWhaleTransactionsFull(
+    symbol: string,
+    options?: { min_lot?: number; fresh?: boolean },
+  ): Promise<WhaleTransactionsApiResponse | null> {
+    const params: QueryParams = {};
+    if (options?.min_lot !== undefined) params.min_lot = String(options.min_lot);
+
+    const endpoint = `/analysis/whale-transactions/${symbol}`;
+    const fetcher = options?.fresh ? fetchApiClientFull<WhaleTransactions> : fetchApiFull<WhaleTransactions>;
+    return fetcher(endpoint, params, 0).catch(() => null);
   },
 
   async getWhaleTransactions(symbol: string, options?: { min_lot?: number; fresh?: boolean }): Promise<WhaleTransactions | null> {

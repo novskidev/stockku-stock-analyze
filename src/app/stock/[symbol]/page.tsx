@@ -22,13 +22,15 @@ async function getStockData(symbol: string) {
       losers,
       mostActive,
       bandarAnalysis,
-      riskReward,
       sentiment,
       info,
       orderbook,
       historicalSummary,
       seasonality,
+      subsidiary,
       keyStats,
+      insights,
+      technicalAnalysis,
       foreignOwnership,
       holdingComposition,
       insider,
@@ -39,13 +41,15 @@ async function getStockData(symbol: string) {
       datasahamApi.getTopLosers().catch(() => []),
       datasahamApi.getMostActive().catch(() => []),
       datasahamApi.getBandarAnalysis(symbol).catch(() => ({ accumulation: null, distribution: null, smartMoney: null, pumpDump: null })),
-      datasahamApi.getRiskReward(symbol).catch(() => null),
       datasahamApi.getMarketSentiment(symbol, { fresh: true }).catch(() => null),
       datasahamApi.getStockInfoDetail(symbol, { fresh: true }).catch(() => null),
       datasahamApi.getOrderbook(symbol, { fresh: true }).catch(() => null),
       datasahamApi.getHistoricalSummary(symbol, { startDate: from, endDate: to, fresh: true }).catch(() => null),
       datasahamApi.getSeasonality(symbol, { fresh: true }).catch(() => []),
+      datasahamApi.getSubsidiary(symbol, { fresh: true }).catch(() => null),
       datasahamApi.getKeyStatsDetail(symbol, { fresh: true }).catch(() => null),
+      datasahamApi.getInsights(symbol, { fresh: true }).catch(() => null),
+      datasahamApi.getTechnicalAnalysis(symbol, { timeframe: 'daily', period: 20, indicator: 'all', fresh: true }).catch(() => null),
       datasahamApi.getForeignOwnership(symbol, { fresh: true }).catch(() => []),
       datasahamApi.getHoldingComposition(symbol, { fresh: true }).catch(() => []),
       datasahamApi.getInsider(symbol, { fresh: true }).catch(() => []),
@@ -59,13 +63,15 @@ async function getStockData(symbol: string) {
       brokerSummary,
       stockQuote,
       bandarAnalysis,
-      riskReward,
       sentiment,
       info,
       orderbook,
       historicalSummary,
       seasonality,
+      subsidiary,
       keyStats,
+      insights,
+      technicalAnalysis,
       foreignOwnership,
       holdingComposition,
       insider,
@@ -88,13 +94,15 @@ export default async function StockPage({ params }: PageProps) {
       brokerSummary={data?.brokerSummary || []}
       stockQuote={data?.stockQuote || null}
       bandarAnalysis={data?.bandarAnalysis || { accumulation: null, distribution: null, smartMoney: null, pumpDump: null }}
-      riskReward={data?.riskReward || null}
       sentiment={data?.sentiment || null}
       info={data?.info || null}
       orderbook={data?.orderbook || null}
       historicalSummary={data?.historicalSummary || null}
       seasonality={data?.seasonality || []}
+      subsidiary={data?.subsidiary || null}
       keyStats={data?.keyStats || null}
+      insights={data?.insights || null}
+      technicalAnalysis={data?.technicalAnalysis || null}
       foreignOwnership={data?.foreignOwnership || []}
       holdingComposition={data?.holdingComposition || []}
       insider={data?.insider || []}

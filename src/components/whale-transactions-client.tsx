@@ -9,11 +9,11 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
 import { ArrowLeft, Activity, RefreshCw, Shield } from 'lucide-react';
-import { WhaleTransactions } from '@/lib/datasaham-api';
+import { WhaleTransactionsApiResponse } from '@/lib/datasaham-api';
 
 interface WhaleTransactionsClientProps {
   initialSymbol: string;
-  initialData: WhaleTransactions | null;
+  initialResponse: WhaleTransactionsApiResponse | null;
 }
 
 function formatNumber(value?: number): string {
@@ -37,10 +37,17 @@ function formatValueFormatted(raw?: number, formatted?: string) {
   return formatNumber(raw);
 }
 
-export function WhaleTransactionsClient({ initialSymbol, initialData }: WhaleTransactionsClientProps) {
+function formatDate(value?: string) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('id-ID');
+}
+
+export function WhaleTransactionsClient({ initialSymbol, initialResponse }: WhaleTransactionsClientProps) {
   const [symbol, setSymbol] = useState(initialSymbol);
   const [minLot, setMinLot] = useState(500);
-  const [data, setData] = useState<WhaleTransactions | null>(initialData);
+  const [response, setResponse] = useState<WhaleTransactionsApiResponse | null>(initialResponse);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchData = useCallback(async (sym?: string, lot?: number) => {
@@ -51,12 +58,15 @@ export function WhaleTransactionsClient({ initialSymbol, initialData }: WhaleTra
       const params = new URLSearchParams();
       if (lot !== undefined) params.append('min_lot', String(lot));
       const res = await fetch(`/api/whale-transactions/${targetSymbol}?${params.toString()}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error('Failed to fetch whale transactions');
-      const payload = await res.json();
-      setData(payload.data || null);
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        setResponse(payload || null);
+        return;
+      }
+      setResponse(payload || null);
     } catch (error) {
       console.error(error);
-      setData(null);
+      setResponse(null);
     } finally {
       setIsLoading(false);
     }
@@ -66,10 +76,14 @@ export function WhaleTransactionsClient({ initialSymbol, initialData }: WhaleTra
     fetchData(initialSymbol, minLot);
   }, [fetchData, initialSymbol, minLot]);
 
+  const data = response?.data ?? null;
   const summary = data?.activity_summary || data?.summary;
   const prediction = data?.prediction;
   const topWhaleBrokers = data?.top_whale_brokers || [];
   const recentTx = data?.recent_whale_transactions || [];
+  const statusLabel = response?.success === true ? 'SUCCESS' : response?.success === false ? 'FAILED' : '-';
+  const statusTone = response?.success === true ? 'text-bullish' : response?.success === false ? 'text-bearish' : 'text-muted-foreground';
+  const responseMessage = response?.message || response?.error || '-';
 
   return (
     <div className="min-h-screen bg-background">
@@ -120,17 +134,44 @@ export function WhaleTransactionsClient({ initialSymbol, initialData }: WhaleTra
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <Badge variant="outline" className={statusTone}>
+                {statusLabel}
+              </Badge>
+              <span className="text-muted-foreground">{responseMessage}</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Symbol</p>
+                <p className="font-semibold">{data?.symbol || symbol}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Analysis Date</p>
+                <p className="font-semibold">{formatDate(data?.analysis_date)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Current Price</p>
+                <p className="font-semibold">{formatNumber(data?.current_price)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Min Lot</p>
+                <p className="font-semibold">{formatNumber(data?.min_lot ?? minLot)}</p>
+              </div>
+            </div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span>Whale threshold:</span>
               <Badge variant="outline">{data?.whale_threshold?.description || '-'}</Badge>
               {data?.whale_threshold?.lot && (
                 <Badge variant="outline">Lot ≥ {formatNumber(data.whale_threshold.lot)}</Badge>
               )}
+              {data?.whale_threshold?.value && (
+                <Badge variant="outline">Value ≥ {formatNumber(data.whale_threshold.value)}</Badge>
+              )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
               <div>
                 <p className="text-xs text-muted-foreground">Total Buy</p>
-                <p className="font-semibold text-bullish">{formatValueFormatted(summary?.total_whale_buy_value, summary?.net_whale_flow_formatted)}</p>
+                <p className="font-semibold text-bullish">{formatNumber(summary?.total_whale_buy_value)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Sell</p>
@@ -139,12 +180,20 @@ export function WhaleTransactionsClient({ initialSymbol, initialData }: WhaleTra
               <div>
                 <p className="text-xs text-muted-foreground">Net Flow</p>
                 <p className={`font-semibold ${summary?.net_whale_flow && summary.net_whale_flow >= 0 ? 'text-bullish' : 'text-bearish'}`}>
-                  {formatNumber(summary?.net_whale_flow)}
+                  {formatValueFormatted(summary?.net_whale_flow, summary?.net_whale_flow_formatted)}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Dominant</p>
                 <p className={`font-semibold ${toneClass(summary?.dominant_action)}`}>{summary?.dominant_action || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Buy Count</p>
+                <p className="font-semibold">{formatNumber(summary?.whale_buy_count)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Sell Count</p>
+                <p className="font-semibold">{formatNumber(summary?.whale_sell_count)}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
@@ -164,6 +213,7 @@ export function WhaleTransactionsClient({ initialSymbol, initialData }: WhaleTra
                       </div>
                       <p className="text-muted-foreground">
                         Net: {formatValueFormatted(b.net_value, b.net_value_formatted)} | Lot: {formatNumber(b.net_lot)}
+                        {' '}| Avg: {formatNumber(b.avg_price)} | Tx: {formatNumber(b.transaction_count)}
                       </p>
                       <p className={`text-xs ${toneClass(b.action)}`}>Action: {b.action || '-'}</p>
                       {b.whale_score !== undefined && <p className="text-xs">Score: {b.whale_score.toFixed(1)}</p>}
@@ -185,7 +235,10 @@ export function WhaleTransactionsClient({ initialSymbol, initialData }: WhaleTra
                         <TableHead>Time</TableHead>
                         <TableHead>Action</TableHead>
                         <TableHead>Lot</TableHead>
+                        <TableHead>Price</TableHead>
                         <TableHead>Value</TableHead>
+                        <TableHead>Board</TableHead>
+                        <TableHead>Impact</TableHead>
                         <TableHead>Type</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -195,7 +248,10 @@ export function WhaleTransactionsClient({ initialSymbol, initialData }: WhaleTra
                           <TableCell>{tx.time}</TableCell>
                           <TableCell className={toneClass(tx.action || '')}>{tx.action || '-'}</TableCell>
                           <TableCell>{formatNumber(tx.lot)}</TableCell>
+                          <TableCell>{formatNumber(tx.price)}</TableCell>
                           <TableCell>{formatValueFormatted(tx.value, tx.value_formatted)}</TableCell>
+                          <TableCell>{tx.market_board || '-'}</TableCell>
+                          <TableCell>{tx.impact_estimate || '-'}</TableCell>
                           <TableCell>{tx.whale_type || '-'}</TableCell>
                         </TableRow>
                       ))}
@@ -230,6 +286,13 @@ export function WhaleTransactionsClient({ initialSymbol, initialData }: WhaleTra
                 {(!data?.alerts || data.alerts.length === 0) && <span className="text-muted-foreground text-xs">Tidak ada alert.</span>}
               </div>
             </div>
+            <Separator />
+            <details className="rounded border border-border p-3 text-xs">
+              <summary className="cursor-pointer font-semibold">Raw API Response (lengkap)</summary>
+              <pre className="mt-2 whitespace-pre-wrap break-words">
+                {response ? JSON.stringify(response, null, 2) : '-'}
+              </pre>
+            </details>
           </CardContent>
         </Card>
       </div>
