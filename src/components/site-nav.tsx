@@ -12,6 +12,7 @@ const navItems = [
   { href: '/ipo-momentum', label: 'IPO Momentum', icon: Rocket },
   { href: '/whale-transactions', label: 'Whale Detector', icon: Users },
   { href: '/broker-summary', label: 'Broker Summary', icon: Shield },
+  { href: '/broker-calendar', label: 'Broker Calendar', icon: Shield },
   { href: '/market-sentiment', label: 'Market Sentiment', icon: Shield },
 ];
 
