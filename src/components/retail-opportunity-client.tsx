@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Rocket, TrendingUp, Target, PieChart, ArrowUp, ArrowDown, 
-  AlertTriangle, CheckCircle, Clock, Zap, BarChart3, Shield, ArrowLeft
+import { Button } from '@/components/ui/button';
+import {
+  Rocket, Target, PieChart, ArrowUp, CheckCircle, Zap, ArrowLeft
 } from 'lucide-react';
 import { MultibaggerScan, BreakoutAlerts, SectorRotation, MultibaggerCandidate } from '@/lib/datasaham-api';
+import { PageHeader } from '@/components/page-header';
 
 interface RetailOpportunityClientProps {
   multibagger: MultibaggerScan | null;
@@ -37,6 +38,29 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
   const [data, setData] = useState<RetailData>({ multibagger, breakout, sectorRotation });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [multibaggerSort, setMultibaggerSort] = useState<'score' | 'return'>('score');
+  const [breakoutSort, setBreakoutSort] = useState<'probability' | 'severity'>('probability');
+
+  const sortedMultibagger = useMemo(() => {
+    const list = data.multibagger?.candidates ? [...data.multibagger.candidates] : [];
+    if (multibaggerSort === 'return') {
+      return list.sort((a, b) => {
+        const aNum = Number(String(a.potential_return).replace('%', '').replace('+', '')) || 0;
+        const bNum = Number(String(b.potential_return).replace('%', '').replace('+', '')) || 0;
+        return bNum - aNum;
+      });
+    }
+    return list.sort((a, b) => (b.multibagger_score || 0) - (a.multibagger_score || 0));
+  }, [data.multibagger, multibaggerSort]);
+
+  const sortedBreakouts = useMemo(() => {
+    const list = data.breakout?.alerts ? [...data.breakout.alerts] : [];
+    if (breakoutSort === 'severity') {
+      const rank = (value: string) => (value === 'HIGH' ? 3 : value === 'MEDIUM' ? 2 : 1);
+      return list.sort((a, b) => rank(b.severity) - rank(a.severity));
+    }
+    return list.sort((a, b) => (b.breakout_probability || 0) - (a.breakout_probability || 0));
+  }, [data.breakout, breakoutSort]);
 
   const refreshData = useCallback(async () => {
     setIsRefreshing(true);
@@ -64,35 +88,31 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Rocket className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold">Retail Opportunity</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Find multibagger stocks, breakout alerts, and sector rotation opportunities
-          </p>
-          <div className="flex items-center gap-3 mt-2">
-            <Link href="/">
-              <Badge variant="outline" className="cursor-pointer flex items-center gap-1">
-                <ArrowLeft className="w-3 h-3" />
-                Back
+        <PageHeader
+          eyebrow="Retail Signal"
+          title="Retail Opportunity"
+          description="Find multibagger stocks, breakout alerts, dan peluang rotasi sektor."
+          icon={<Rocket className="h-6 w-6 text-primary" />}
+          meta={
+            lastUpdated ? (
+              <span>Update: {lastUpdated.toLocaleTimeString('id-ID')}</span>
+            ) : null
+          }
+          actions={
+            <>
+              <Link href="/">
+                <Badge variant="outline" className="cursor-pointer flex items-center gap-1">
+                  <ArrowLeft className="w-3 h-3" />
+                  Back
+                </Badge>
+              </Link>
+              <Badge variant="outline" className="cursor-pointer" onClick={refreshData}>
+                {isRefreshing ? 'Refreshing...' : 'Refresh Now'}
               </Badge>
-            </Link>
-            {lastUpdated && (
-              <span className="text-xs text-muted-foreground">
-                Update: {lastUpdated.toLocaleTimeString('id-ID')}
-              </span>
-            )}
-            <Badge
-              variant="outline"
-              className="cursor-pointer"
-              onClick={refreshData}
-            >
-              {isRefreshing ? 'Refreshing...' : 'Refresh Now'}
-            </Badge>
-          </div>
-        </div>
+            </>
+          }
+          className="mb-8"
+        />
 
         <div className="grid gap-4 md:grid-cols-4 mb-6">
           <Card>
@@ -170,14 +190,33 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                     <p className="text-sm text-muted-foreground">
                       {data.multibagger.total_candidates} candidates with score {'>='} {data.multibagger.filters_applied.min_score}
                     </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">Sort by</Badge>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={multibaggerSort === 'score' ? 'default' : 'ghost'}
+                        onClick={() => setMultibaggerSort('score')}
+                      >
+                        Score
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={multibaggerSort === 'return' ? 'default' : 'ghost'}
+                        onClick={() => setMultibaggerSort('return')}
+                      >
+                        Return
+                      </Button>
+                    </div>
                   </CardHeader>
                 </Card>
 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {data.multibagger.candidates.map((stock, idx) => (
+                  {sortedMultibagger.map((stock, idx) => (
                     <Link key={idx} href={`/stock/${stock.symbol}`}>
-                      <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-                        <CardContent className="p-4">
+                      <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full flex flex-col">
+                        <CardContent className="p-4 flex flex-col h-full">
                           <div className="flex items-center justify-between mb-3">
                             <div>
                               <p className="font-bold text-lg">{stock.symbol}</p>
@@ -211,7 +250,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                             <Badge variant="outline">{stock.timeframe}</Badge>
                           </div>
 
-                          <div className="space-y-2">
+                          <div className="space-y-2 mt-auto">
                             <div className="flex items-center gap-2 text-xs">
                               <Badge variant="outline" className={`${
                                 stock.reasons.technical.trend === 'UPTREND' ? 'bg-bullish/10 text-bullish' : 'bg-muted'
@@ -260,11 +299,30 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                     <p className="text-sm text-muted-foreground">
                       {data.breakout.total_alerts} real-time breakout detections with volume confirmation
                     </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">Sort by</Badge>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={breakoutSort === 'probability' ? 'default' : 'ghost'}
+                        onClick={() => setBreakoutSort('probability')}
+                      >
+                        Probability
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={breakoutSort === 'severity' ? 'default' : 'ghost'}
+                        onClick={() => setBreakoutSort('severity')}
+                      >
+                        Severity
+                      </Button>
+                    </div>
                   </CardHeader>
                 </Card>
 
                 <div className="space-y-3">
-                  {data.breakout.alerts.slice(0, 15).map((alert, idx) => (
+                  {sortedBreakouts.slice(0, 15).map((alert, idx) => (
                     <Link key={idx} href={`/stock/${alert.symbol}`}>
                       <Card className={`hover:border-primary/50 transition-colors cursor-pointer ${
                         alert.severity === 'HIGH' ? 'border-bullish/30 bg-bullish/5' :

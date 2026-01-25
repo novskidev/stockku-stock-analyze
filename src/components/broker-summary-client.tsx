@@ -16,9 +16,9 @@ interface BrokerSummaryClientProps {
 }
 
 const ranges = [
-  { label: '7H', days: 7 },
-  { label: '30H', days: 30 },
-  { label: '90H', days: 90 },
+  { label: '7D', days: 7 },
+  { label: '30D', days: 30 },
+  { label: '90D', days: 90 },
 ];
 
 function formatNumber(value: number): string {
@@ -124,20 +124,23 @@ export function BrokerSummaryClient({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {ranges.map((r) => (
-                <Button
-                  key={r.days}
-                  type="button"
-                  variant={range === r.days ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setRange(r.days);
-                    fetchData(symbol, r.days);
-                  }}
-                >
-                  {r.label}
-                </Button>
-              ))}
+              <div className="flex items-center gap-1 rounded-full border border-border/60 bg-card/60 p-1">
+                {ranges.map((r) => (
+                  <Button
+                    key={r.days}
+                    type="button"
+                    variant={range === r.days ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-7 px-3 text-[10px] uppercase tracking-[0.2em]"
+                    onClick={() => {
+                      setRange(r.days);
+                      fetchData(symbol, r.days);
+                    }}
+                  >
+                    {r.label}
+                  </Button>
+                ))}
+              </div>
               <Button type="submit" size="sm" variant="outline" disabled={isLoading}>
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>

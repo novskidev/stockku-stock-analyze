@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { RefreshCw, Search, ArrowLeft } from 'lucide-react';
 import { MarketSentiment, BandarTopBroker } from '@/lib/datasaham-api';
 import Link from 'next/link';
+import { PageHeader } from '@/components/page-header';
+import { Progress } from '@/components/ui/progress';
 
 interface MarketSentimentClientProps {
   initialSymbol: string;
@@ -104,28 +106,31 @@ export function MarketSentimentClient({ initialSymbol, initialSentiment }: Marke
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 space-y-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Market Sentiment</h1>
-            <p className="text-sm text-muted-foreground">Sentimen ritel vs bandar per saham</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href="/">
-              <Button variant="ghost" size="icon" aria-label="Back">
-                <ArrowLeft className="w-4 h-4" />
+        <PageHeader
+          eyebrow="Behavioral Map"
+          title="Market Sentiment"
+          description="Sentimen ritel vs bandar per saham"
+          icon={<Search className="h-6 w-6 text-primary" />}
+          meta={
+            lastUpdated ? (
+              <span>Update: {lastUpdated.toLocaleTimeString('id-ID')}</span>
+            ) : null
+          }
+          actions={
+            <>
+              <Link href="/">
+                <Button variant="ghost" size="icon" aria-label="Back">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={() => fetchSentiment()} disabled={isLoading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
               </Button>
-            </Link>
-            {lastUpdated && (
-              <span className="text-xs text-muted-foreground">
-                Update: {lastUpdated.toLocaleTimeString('id-ID')}
-              </span>
-            )}
-            <Button variant="outline" size="sm" onClick={() => fetchSentiment()} disabled={isLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+          className="mb-6"
+        />
 
         <Card>
           <CardHeader className="flex flex-col gap-3">
@@ -165,6 +170,13 @@ export function MarketSentimentClient({ initialSymbol, initialSentiment }: Marke
                         </Badge>
                       )}
                     </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Signal Strength</span>
+                        <span>{sentiment.retail_sentiment?.score?.toFixed(0) || '0'}%</span>
+                      </div>
+                      <Progress value={Math.max(0, Math.min(100, sentiment.retail_sentiment?.score || 0))} className="h-2" />
+                    </div>
                     <MetricRow label="Score" value={sentiment.retail_sentiment?.score?.toFixed(1) || '-'} />
                     <MetricRow label="Frequency score" value={sentiment.retail_sentiment?.indicators?.frequency_score?.toFixed(2) || '-'} />
                     <MetricRow label="Small lot %" value={formatPercent(sentiment.retail_sentiment?.indicators?.small_lot_percentage)} />
@@ -183,6 +195,13 @@ export function MarketSentimentClient({ initialSymbol, initialSentiment }: Marke
                           {sentiment.bandar_sentiment.status.replace(/_/g, ' ')}
                         </Badge>
                       )}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Signal Strength</span>
+                        <span>{sentiment.bandar_sentiment?.score?.toFixed(0) || '0'}%</span>
+                      </div>
+                      <Progress value={Math.max(0, Math.min(100, sentiment.bandar_sentiment?.score || 0))} className="h-2" />
                     </div>
                     <MetricRow label="Score" value={sentiment.bandar_sentiment?.score?.toFixed(1) || '-'} />
                     <MetricRow label="Top broker net flow" value={formatNumber(sentiment.bandar_sentiment?.indicators?.top_broker_net_flow)} />

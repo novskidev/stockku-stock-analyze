@@ -1,13 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { ArrowLeft, Flame, RefreshCw } from 'lucide-react';
 import { IpoMomentum, IpoMomentumItem } from '@/lib/datasaham-api';
+import { PageHeader } from '@/components/page-header';
 
 interface IpoMomentumClientProps {
   data: IpoMomentum | null;
@@ -15,6 +15,13 @@ interface IpoMomentumClientProps {
 
 function formatScore(score?: number) {
   return score !== undefined && score !== null ? score.toFixed(1) : '-';
+}
+
+function parseOfferingPeriod(period?: string) {
+  if (!period) return null;
+  const match = period.match(/(\d{4}-\d{2}-\d{2}).*(\d{4}-\d{2}-\d{2})/);
+  if (!match) return null;
+  return { start: match[1], end: match[2] };
 }
 
 function TierBadge({ tier }: { tier?: string }) {
@@ -47,9 +54,10 @@ function RecommendationBadge({ recommendation }: { recommendation?: string }) {
 }
 
 function IpoCard({ ipo }: { ipo: IpoMomentumItem }) {
+  const offeringRange = parseOfferingPeriod(ipo.offering_period);
   return (
     <Card className="h-full">
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-4 space-y-2 flex flex-col h-full">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-bold text-lg">{ipo.symbol}</p>
@@ -73,6 +81,22 @@ function IpoCard({ ipo }: { ipo: IpoMomentumItem }) {
         {ipo.listing_date && (
           <p className="text-sm text-muted-foreground">Listing date: {ipo.listing_date}</p>
         )}
+        {(offeringRange || ipo.listing_date) && (
+          <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+            {offeringRange && (
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                <span>Offering {offeringRange.start} → {offeringRange.end}</span>
+              </div>
+            )}
+            {ipo.listing_date && (
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-chart-2" />
+                <span>Listing {ipo.listing_date}</span>
+              </div>
+            )}
+          </div>
+        )}
         {ipo.performance_since_listing !== undefined && (
           <p className={`text-sm ${ipo.performance_since_listing >= 0 ? 'text-bullish' : 'text-bearish'}`}>
             Perf since listing: {ipo.performance_since_listing.toFixed(2)}%
@@ -89,6 +113,23 @@ function IpoCard({ ipo }: { ipo: IpoMomentumItem }) {
 export function IpoMomentumClient({ data }: IpoMomentumClientProps) {
   const [momentum, setMomentum] = useState<IpoMomentum | null>(data);
   const [isLoading, setIsLoading] = useState(false);
+  const [sortKey, setSortKey] = useState<'score' | 'date'>('score');
+
+  const upcomingSorted = useMemo(() => {
+    const list = momentum?.upcoming_ipos ? [...momentum.upcoming_ipos] : [];
+    if (sortKey === 'date') {
+      return list.sort((a, b) => (a.listing_date || '').localeCompare(b.listing_date || ''));
+    }
+    return list.sort((a, b) => (b.momentum_score || 0) - (a.momentum_score || 0));
+  }, [momentum?.upcoming_ipos, sortKey]);
+
+  const recentSorted = useMemo(() => {
+    const list = momentum?.recent_ipos ? [...momentum.recent_ipos] : [];
+    if (sortKey === 'date') {
+      return list.sort((a, b) => (b.listing_date || '').localeCompare(a.listing_date || ''));
+    }
+    return list.sort((a, b) => (b.momentum_score || 0) - (a.momentum_score || 0));
+  }, [momentum?.recent_ipos, sortKey]);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -112,28 +153,26 @@ export function IpoMomentumClient({ data }: IpoMomentumClientProps) {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-primary/10">
-              <Flame className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">IPO Momentum Tracker</h1>
-              <p className="text-sm text-muted-foreground">Momentum score, rekomendasi, dan sektor panas</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/">
-              <Button variant="ghost" size="icon" aria-label="Back">
-                <ArrowLeft className="w-4 h-4" />
+        <PageHeader
+          eyebrow="Primary Market"
+          title="IPO Momentum Tracker"
+          description="Momentum score, rekomendasi, dan sektor panas"
+          icon={<Flame className="h-6 w-6 text-primary" />}
+          actions={
+            <>
+              <Link href="/">
+                <Button variant="ghost" size="icon" aria-label="Back">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
               </Button>
-            </Link>
-            <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+          className="mb-6"
+        />
 
         <Card>
           <CardHeader>
@@ -149,6 +188,25 @@ export function IpoMomentumClient({ data }: IpoMomentumClientProps) {
                 ))}
               </div>
             )}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <Badge variant="outline">Sort by</Badge>
+              <Button
+                type="button"
+                size="sm"
+                variant={sortKey === 'score' ? 'default' : 'ghost'}
+                onClick={() => setSortKey('score')}
+              >
+                Score
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={sortKey === 'date' ? 'default' : 'ghost'}
+                onClick={() => setSortKey('date')}
+              >
+                Listing Date
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -158,9 +216,9 @@ export function IpoMomentumClient({ data }: IpoMomentumClientProps) {
               <CardTitle>Upcoming IPOs</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {momentum?.upcoming_ipos && momentum.upcoming_ipos.length > 0 ? (
+              {upcomingSorted.length > 0 ? (
                 <div className="grid gap-3">
-                  {momentum.upcoming_ipos.map((ipo, idx) => (
+                  {upcomingSorted.map((ipo, idx) => (
                     <IpoCard key={`${ipo.symbol}-${idx}`} ipo={ipo} />
                   ))}
                 </div>
@@ -175,9 +233,9 @@ export function IpoMomentumClient({ data }: IpoMomentumClientProps) {
               <CardTitle>Recent IPOs</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {momentum?.recent_ipos && momentum.recent_ipos.length > 0 ? (
+              {recentSorted.length > 0 ? (
                 <div className="grid gap-3">
-                  {momentum.recent_ipos.map((ipo, idx) => (
+                  {recentSorted.map((ipo, idx) => (
                     <IpoCard key={`${ipo.symbol}-${idx}`} ipo={ipo} />
                   ))}
                 </div>

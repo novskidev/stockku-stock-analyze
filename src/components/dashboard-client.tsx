@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Search, TrendingUp, TrendingDown, Activity, Users, ArrowUpRight, ArrowDownRight, LineChart, Zap, Target, Shield, Rocket, RefreshCw, BarChart3 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Search, TrendingUp, TrendingDown, Activity, Users, ArrowUpRight, ArrowDownRight, LineChart, Zap, Shield, RefreshCw, BarChart3 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { TopMover } from '@/lib/datasaham-api';
 import Link from 'next/link';
+import { PageHeader } from '@/components/page-header';
+import { Sparkline } from '@/components/sparkline';
+import { useRouter } from 'next/navigation';
 
 interface DashboardClientProps {
   initialData: {
@@ -87,9 +90,11 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; desc: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
   const [marketData, setMarketData] = useState(initialData);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const router = useRouter();
 
   const refreshMarketData = useCallback(async () => {
     setIsRefreshing(true);
@@ -123,6 +128,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
     setSearchQuery(query);
     if (query.length < 2) {
       setSearchResults([]);
+      setActiveSearchIndex(-1);
       return;
     }
 
@@ -131,53 +137,150 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
       const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
       const data = await response.json();
       setSearchResults(data.results || []);
+      setActiveSearchIndex(-1);
     } catch {
       setSearchResults([]);
+      setActiveSearchIndex(-1);
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const marketPulse = useMemo(() => {
+    const combined = [...marketData.gainers, ...marketData.losers];
+    const total = combined.length || 1;
+    const breadth = marketData.gainers.length / total;
+    const avgVolatility =
+      combined.length > 0
+        ? combined.reduce((acc, item) => acc + Math.abs(item.change_percentage || 0), 0) / combined.length
+        : 0;
+    const flow = marketData.foreignBuy.slice(0, 5).reduce((acc, item) => acc + (item.value || 0), 0);
+    const snapshotValues = marketData.mostActive.slice(0, 10).map((item) => item.last_price || 0);
+    return { breadth, avgVolatility, flow, snapshotValues };
+  }, [marketData]);
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (searchResults.length === 0) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActiveSearchIndex((prev) => Math.min(prev + 1, searchResults.length - 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActiveSearchIndex((prev) => Math.max(prev - 1, 0));
+    } else if (event.key === 'Enter' && activeSearchIndex >= 0) {
+      event.preventDefault();
+      const selected = searchResults[activeSearchIndex];
+      if (selected) {
+        router.push(`/stock/${selected.name}`);
+        setSearchQuery('');
+        setSearchResults([]);
+        setActiveSearchIndex(-1);
+      }
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">StockAnalyzer</h1>
-            <p className="text-sm text-muted-foreground">Cari saham cepat dan lihat pergerakan pasar</p>
-          </div>
-          <div className="relative w-full md:max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Cari saham (contoh: BBCA, TLKM)..."
-              className="pl-10 bg-secondary"
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-            />
-            {searchResults.length > 0 && (
-              <div className="absolute top-full mt-2 w-full bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-                {searchResults.map((result) => (
-                  <Link
-                    key={result.id}
-                    href={`/stock/${result.name}`}
-                    className="flex items-center justify-between p-3 hover:bg-accent transition-colors"
-                    onClick={() => {
-                      setSearchQuery('');
-                      setSearchResults([]);
-                    }}
-                  >
-                    <div>
-                      <span className="font-bold">{result.name}</span>
-                      <p className="text-xs text-muted-foreground">{result.desc}</p>
-                    </div>
-                    <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
-                  </Link>
-                ))}
+        <PageHeader
+          eyebrow="Market Overview"
+          title="StockAnalyzer"
+          description="Cari saham cepat dan lihat pergerakan pasar"
+          icon={<LineChart className="h-6 w-6 text-primary" />}
+          actions={
+            <div className="relative z-20 w-full md:max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Cari saham (contoh: BBCA, TLKM)..."
+                className="pl-10 bg-secondary"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                role="combobox"
+                aria-expanded={searchResults.length > 0}
+                aria-controls="search-results"
+                aria-activedescendant={
+                  activeSearchIndex >= 0 ? `search-result-${activeSearchIndex}` : undefined
+                }
+              />
+              {searchResults.length > 0 && (
+                <div
+                  id="search-results"
+                  role="listbox"
+                  className="absolute top-full mt-2 w-full bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+                >
+                  {isSearching && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">Searching...</div>
+                  )}
+                  {searchResults.map((result, idx) => (
+                    <Link
+                      key={result.id}
+                      id={`search-result-${idx}`}
+                      role="option"
+                      aria-selected={activeSearchIndex === idx}
+                      href={`/stock/${result.name}`}
+                      className={`flex items-center justify-between p-3 transition-colors ${
+                        activeSearchIndex === idx ? 'bg-accent' : 'hover:bg-accent'
+                      }`}
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchResults([]);
+                        setActiveSearchIndex(-1);
+                      }}
+                    >
+                      <div>
+                        <span className="font-bold">{result.name}</span>
+                        <p className="text-xs text-muted-foreground">{result.desc}</p>
+                      </div>
+                      <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          }
+          className="mb-6 overflow-visible"
+        />
+
+        <Card className="mb-6 glass-card reveal-up">
+          <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <CardTitle>Market Pulse</CardTitle>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline">Breadth {(marketPulse.breadth * 100).toFixed(0)}%</Badge>
+              <Badge variant="outline">Volatility {marketPulse.avgVolatility.toFixed(2)}%</Badge>
+              <Badge variant="outline">Flow {formatNumber(marketPulse.flow)}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Snapshot aktivitas top movers hari ini, rangkum arah pasar, tekanan, dan arus dana asing.
+              </p>
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                <div className="rounded-xl border border-border/60 bg-card/60 p-3">
+                  <p className="text-xs text-muted-foreground">Breadth</p>
+                  <p className="text-xl font-bold">{(marketPulse.breadth * 100).toFixed(0)}%</p>
+                </div>
+                <div className="rounded-xl border border-border/60 bg-card/60 p-3">
+                  <p className="text-xs text-muted-foreground">Avg Vol</p>
+                  <p className="text-xl font-bold">{marketPulse.avgVolatility.toFixed(2)}%</p>
+                </div>
+                <div className="rounded-xl border border-border/60 bg-card/60 p-3">
+                  <p className="text-xs text-muted-foreground">Foreign Flow</p>
+                  <p className="text-xl font-bold">{formatNumber(marketPulse.flow)}</p>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+            <div className="flex items-center justify-center rounded-2xl border border-border/60 bg-card/60 p-4">
+              <div className="text-center">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Snapshot</p>
+                <Sparkline values={marketPulse.snapshotValues} className="mx-auto mt-3 h-12 w-40" />
+                <p className="mt-2 text-xs text-muted-foreground">Top most-active prices</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-4 md:grid-cols-4 mb-6">
           <Card className="bg-gradient-to-br from-bullish/10 to-bullish/5 border-bullish/20">

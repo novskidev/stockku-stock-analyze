@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Sparkline } from '@/components/sparkline';
 
 const monthValue = (date: Date) => format(date, 'yyyy-MM');
 const dayKey = (date: Date) => format(date, 'yyyy-MM-dd');
@@ -162,6 +163,11 @@ export function BrokerCalendarClient({
     [dayStats]
   );
 
+  const netLotSeries = useMemo(
+    () => monthDates.map((date) => dayStats[dayKey(date)]?.netLot ?? 0),
+    [dayStats, monthDates]
+  );
+
   const avgBuy = summary.totalBuyVolume > 0 ? summary.totalWeightedBuy / summary.totalBuyVolume : undefined;
   const netTone =
     summary.totalNetLot > 0
@@ -219,12 +225,12 @@ export function BrokerCalendarClient({
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700">Net Buy</Badge>
             <Badge variant="outline" className="bg-rose-500/15 text-rose-700">Net Sell</Badge>
-            <span>Menampilkan net lot per hari pada bulan terpilih.</span>
+            <span>Menampilkan net lot per hari pada bulan terpilih (abu-abu = no data).</span>
           </div>
 
           {error && <p className="text-sm text-bearish">{error}</p>}
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
             <div className="rounded-md border border-border p-2">
               <Calendar
                 mode="single"
@@ -269,61 +275,72 @@ export function BrokerCalendarClient({
               />
             </div>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Ringkasan Bulan</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Total Net Lot</span>
-                  <span className={cn('font-mono font-semibold', netTone)}>
-                    {formatLot(summary.totalNetLot)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Avg Buy</span>
-                  <span className="font-mono font-semibold">
-                    {formatPrice(avgBuy)}
-                  </span>
-                </div>
-                <div className="rounded-md border border-border p-3 text-xs">
-                  <p className="font-semibold text-muted-foreground">Detail Harian</p>
-                  {!selectedDate && (
-                    <p className="mt-2 text-muted-foreground">Klik tanggal untuk melihat detail.</p>
-                  )}
-                  {selectedDate && !hasSelectedStats && (
-                    <p className="mt-2 text-muted-foreground">
-                      Data tidak tersedia untuk {selectedKey}.
+            <div className="space-y-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Net Lot Trend</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-xs text-muted-foreground">
+                  <Sparkline values={netLotSeries} className="h-10 w-full" />
+                  <div className="flex items-center justify-between">
+                    <span>Total Net</span>
+                    <span className={cn('font-mono font-semibold', netTone)}>
+                      {formatLot(summary.totalNetLot)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Avg Buy</span>
+                    <span className="font-mono font-semibold">
+                      {formatPrice(avgBuy)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Ringkasan Bulan</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm">
+                  <div className="rounded-md border border-border p-3 text-xs">
+                    <p className="font-semibold text-muted-foreground">Detail Harian</p>
+                    {!selectedDate && (
+                      <p className="mt-2 text-muted-foreground">Klik tanggal untuk melihat detail.</p>
+                    )}
+                    {selectedDate && !hasSelectedStats && (
+                      <p className="mt-2 text-muted-foreground">
+                        Data tidak tersedia untuk {selectedKey}.
+                      </p>
+                    )}
+                    {selectedDate && hasSelectedStats && selectedStats && (
+                      <div className="mt-2 space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Tanggal</span>
+                          <span className="font-mono">{selectedKey}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Net Lot</span>
+                          <span className={cn('font-mono font-semibold', selectedStats.netLot && selectedStats.netLot > 0 ? 'text-emerald-700' : selectedStats.netLot && selectedStats.netLot < 0 ? 'text-rose-700' : 'text-muted-foreground')}>
+                            {formatLot(selectedStats.netLot ?? 0)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Avg Buy</span>
+                          <span className="font-mono font-semibold">
+                            {formatPrice(selectedStats.buyAvgPrice ?? undefined)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {summary.missingDays > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {summary.missingDays} hari gagal dimuat.
                     </p>
                   )}
-                  {selectedDate && hasSelectedStats && selectedStats && (
-                    <div className="mt-2 space-y-2 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Tanggal</span>
-                        <span className="font-mono">{selectedKey}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Net Lot</span>
-                        <span className={cn('font-mono font-semibold', selectedStats.netLot && selectedStats.netLot > 0 ? 'text-emerald-700' : selectedStats.netLot && selectedStats.netLot < 0 ? 'text-rose-700' : 'text-muted-foreground')}>
-                          {formatLot(selectedStats.netLot ?? 0)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Avg Buy</span>
-                        <span className="font-mono font-semibold">
-                          {formatPrice(selectedStats.buyAvgPrice ?? undefined)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {summary.missingDays > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {summary.missingDays} hari gagal dimuat.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </CardContent>
       </Card>

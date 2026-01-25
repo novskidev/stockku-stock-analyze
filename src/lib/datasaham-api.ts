@@ -834,6 +834,43 @@ export interface BandarAnalysis {
   pumpDump: BandarPumpDump | null;
 }
 
+export interface CorrelationPair {
+  symbol_a: string;
+  symbol_b: string;
+  correlation: number;
+  strength: string;
+  interpretation: string;
+}
+
+export interface CorrelationSymbolAnalysis {
+  symbol: string;
+  correlations: Array<{
+    symbol: string;
+    value: number;
+    strength: string;
+  }>;
+  avg_correlation: number;
+  most_correlated: string;
+  least_correlated: string;
+}
+
+export interface CorrelationInsights {
+  highly_correlated: CorrelationPair[];
+  inversely_correlated: CorrelationPair[];
+  uncorrelated: CorrelationPair[];
+}
+
+export interface CorrelationData {
+  analysis_date: string;
+  period_days: number;
+  symbols: string[];
+  matrix: number[][];
+  pairs: CorrelationPair[];
+  insights: CorrelationInsights;
+  symbol_analysis: CorrelationSymbolAnalysis[];
+  trading_implications: string[];
+}
+
 export interface MultibaggerCandidate {
   symbol: string;
   name: string;
@@ -1319,7 +1356,7 @@ export const datasahamApi = {
 
     const endpoint = `/analysis/bandar/accumulation/${symbol}`;
     const fetcher = options?.fresh ? fetchApiClient<BandarAccumulation> : fetchApi<BandarAccumulation>;
-    return fetcher(endpoint, params, 60).catch(() => null);
+    return fetcher(endpoint, Object.keys(params).length ? params : undefined, 60).catch(() => null);
   },
 
   async getBandarDistribution(symbol: string): Promise<BandarDistribution | null> {
@@ -1349,12 +1386,28 @@ export const datasahamApi = {
 
   async getBandarAnalysis(symbol: string, options?: { accumulationDays?: number; pumpDumpDays?: number }): Promise<BandarAnalysis> {
     const [accumulation, distribution, smartMoney, pumpDump] = await Promise.all([
-      this.getBandarAccumulation(symbol, { days: options?.accumulationDays ?? 14 }),
+      this.getBandarAccumulation(symbol, options?.accumulationDays !== undefined ? { days: options.accumulationDays } : undefined),
       this.getBandarDistribution(symbol),
       this.getBandarSmartMoney(symbol),
       this.getBandarPumpDump(symbol, { days: options?.pumpDumpDays ?? 7 }),
     ]);
     return { accumulation, distribution, smartMoney, pumpDump };
+  },
+
+  async getCorrelation(
+    symbols: string[],
+    options?: { period_days?: number; fresh?: boolean }
+  ): Promise<CorrelationData | null> {
+    const params: QueryParams = {
+      symbols: symbols.join(','),
+    };
+    if (options?.period_days !== undefined) {
+      params.period_days = String(options.period_days);
+    }
+
+    const endpoint = '/analysis/correlation';
+    const fetcher = options?.fresh ? fetchApiClient<CorrelationData> : fetchApi<CorrelationData>;
+    return fetcher(endpoint, params, 60).catch(() => null);
   },
 
   async getMultibaggerScan(options?: { min_score?: number; sector?: string; max_results?: number; fresh?: boolean }): Promise<MultibaggerScan | null> {

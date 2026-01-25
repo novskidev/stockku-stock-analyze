@@ -6,10 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { ArrowLeft, Activity, RefreshCw, Shield } from 'lucide-react';
 import { WhaleTransactionsApiResponse } from '@/lib/datasaham-api';
+import { PageHeader } from '@/components/page-header';
 
 interface WhaleTransactionsClientProps {
   initialSymbol: string;
@@ -88,30 +89,28 @@ export function WhaleTransactionsClient({ initialSymbol, initialResponse }: Whal
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-primary/10">
-              <Activity className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Whale Transaction Detector</h1>
-              <p className="text-sm text-muted-foreground">Deteksi transaksi jumbo (institusi) dan alirannya</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/">
-              <Button variant="ghost" size="icon" aria-label="Back">
-                <ArrowLeft className="w-4 h-4" />
+        <PageHeader
+          eyebrow="Institutional Flow"
+          title="Whale Transaction Detector"
+          description="Deteksi transaksi jumbo (institusi) dan alirannya"
+          icon={<Activity className="h-6 w-6 text-primary" />}
+          actions={
+            <>
+              <Link href="/">
+                <Button variant="ghost" size="icon" aria-label="Back">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={() => fetchData(symbol, minLot)} disabled={isLoading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
               </Button>
-            </Link>
-            <Button variant="outline" size="sm" onClick={() => fetchData(symbol, minLot)} disabled={isLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+          className="mb-6 reveal-up"
+        />
 
-        <Card>
+        <Card className="glass-card reveal-up reveal-delay-1">
           <CardHeader className="flex flex-col gap-3">
             <CardTitle>Cari Emiten</CardTitle>
             <div className="flex flex-wrap items-center gap-2">
@@ -201,12 +200,12 @@ export function WhaleTransactionsClient({ initialSymbol, initialResponse }: Whal
               <span>Intensity: {summary?.whale_intensity || '-'}</span>
             </div>
             <Separator />
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
                 <p className="text-sm font-semibold mb-2">Top Whale Brokers</p>
                 <div className="space-y-2">
                   {topWhaleBrokers.slice(0, 10).map((b, idx) => (
-                    <div key={`${b.broker_code || b.code}-${idx}`} className="rounded border border-border p-3 text-sm">
+                    <div key={`${b.broker_code || b.code}-${idx}`} className="rounded-xl border border-border/60 bg-card/60 p-3 text-sm">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold">{b.broker_code || b.code}</span>
                         <Badge variant="outline">{b.broker_type || b.type || 'Broker'}</Badge>
@@ -224,39 +223,41 @@ export function WhaleTransactionsClient({ initialSymbol, initialResponse }: Whal
                   )}
                 </div>
               </div>
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm font-semibold mb-2">Recent Whale Transactions</p>
                 {recentTx.length === 0 ? (
                   <p className="text-xs text-muted-foreground">Tidak ada data.</p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Action</TableHead>
-                        <TableHead>Lot</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Value</TableHead>
-                        <TableHead>Board</TableHead>
-                        <TableHead>Impact</TableHead>
-                        <TableHead>Type</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentTx.slice(0, 10).map((tx, idx) => (
-                        <TableRow key={`${tx.time}-${idx}`}>
-                          <TableCell>{tx.time}</TableCell>
-                          <TableCell className={toneClass(tx.action || '')}>{tx.action || '-'}</TableCell>
-                          <TableCell>{formatNumber(tx.lot)}</TableCell>
-                          <TableCell>{formatNumber(tx.price)}</TableCell>
-                          <TableCell>{formatValueFormatted(tx.value, tx.value_formatted)}</TableCell>
-                          <TableCell>{tx.market_board || '-'}</TableCell>
-                          <TableCell>{tx.impact_estimate || '-'}</TableCell>
-                          <TableCell>{tx.whale_type || '-'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="space-y-3">
+                    {recentTx.slice(0, 10).map((tx, idx) => (
+                      <div key={`${tx.time}-${idx}`} className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <span className={`h-2.5 w-2.5 rounded-full ${toneClass(tx.action || '') === 'text-bullish' ? 'bg-bullish' : toneClass(tx.action || '') === 'text-bearish' ? 'bg-bearish' : 'bg-neutral'}`} />
+                          {idx < recentTx.slice(0, 10).length - 1 && (
+                            <span className="mt-1 h-full w-px bg-border/60" />
+                          )}
+                        </div>
+                        <div className="flex-1 rounded-xl border border-border/60 bg-card/60 p-3 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">{tx.time}</span>
+                            <Badge variant="outline" className={toneClass(tx.action || '')}>
+                              {tx.action || '-'}
+                            </Badge>
+                          </div>
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-muted-foreground">
+                            <span>Lot: {formatNumber(tx.lot)}</span>
+                            <span>Price: {formatNumber(tx.price)}</span>
+                            <span>Value: {formatValueFormatted(tx.value, tx.value_formatted)}</span>
+                            <span>Board: {tx.market_board || '-'}</span>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <Badge variant="outline">Impact {tx.impact_estimate || '-'}</Badge>
+                            <Badge variant="outline">{tx.whale_type || '-'}</Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -269,6 +270,9 @@ export function WhaleTransactionsClient({ initialSymbol, initialResponse }: Whal
               <p className="text-sm text-muted-foreground">
                 Confidence: {prediction?.confidence !== undefined ? `${prediction.confidence.toFixed(0)}%` : '-'}
               </p>
+              {prediction?.confidence !== undefined && (
+                <Progress value={Math.max(0, Math.min(100, prediction.confidence))} className="h-2" />
+              )}
               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {(prediction?.reasoning || []).map((r, idx) => (
                   <Badge key={idx} variant="outline">{r}</Badge>

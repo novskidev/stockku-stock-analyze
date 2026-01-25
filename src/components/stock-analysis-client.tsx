@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   ArrowLeft, TrendingUp, TrendingDown, Activity, Users, BarChart3, 
   Shield, Zap, Target, AlertTriangle,
-  ArrowUpRight, ArrowDownRight, Info, Building, DollarSign
+  ArrowUpRight, ArrowDownRight, Info, Building, DollarSign, ChevronDown
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { StockProfile, BrokerSummary, TopMover, BandarAnalysis, BandarPumpDump, ChartTimeframe, MarketSentiment, StockInfoDetail, Orderbook, HistoricalSummary, SeasonalityPoint, SubsidiaryData, KeyStats, HoldingComposition, ForeignOwnership, InsiderTransaction, InsightsData, InsightItem, TechnicalAnalysis } from '@/lib/datasaham-api';
 import { 
   OHLCV, calculateTechnicalSummary, TechnicalSignal 
@@ -169,6 +170,34 @@ function toneClass(tone: string) {
   if (tone === 'bullish') return 'text-bullish';
   if (tone === 'bearish') return 'text-bearish';
   return 'text-neutral';
+}
+
+function normalizeSignalTone(value?: string): 'bullish' | 'bearish' | 'neutral' {
+  if (!value) return 'neutral';
+  const normalized = value.toLowerCase();
+  if (
+    normalized.includes('buy') ||
+    normalized.includes('bull') ||
+    normalized.includes('accum') ||
+    normalized.includes('up') ||
+    normalized.includes('strong') ||
+    normalized.includes('excellent') ||
+    normalized.includes('good')
+  ) {
+    return 'bullish';
+  }
+  if (
+    normalized.includes('sell') ||
+    normalized.includes('bear') ||
+    normalized.includes('down') ||
+    normalized.includes('weak') ||
+    normalized.includes('poor') ||
+    normalized.includes('distrib') ||
+    normalized.includes('exit')
+  ) {
+    return 'bearish';
+  }
+  return 'neutral';
 }
 
 function MetricRow({ label, value }: { label: string; value: string }) {
@@ -507,6 +536,26 @@ export function StockAnalysisClient({
     : technicalSummary.overallSignal;
   const technicalConfidence = technicalData?.signal?.confidence ?? technicalSummary.confidence;
 
+  const consensus = useMemo(() => {
+    const signals = [
+      normalizeSignalTone(technicalSignal),
+      normalizeSignalTone(fundamentalSummary.overallRating),
+      normalizeSignalTone(bandarmologySummary?.overallSignal),
+      prediction.direction === 'up' ? 'bullish' : prediction.direction === 'down' ? 'bearish' : 'neutral',
+    ];
+    const tally = { bullish: 0, bearish: 0, neutral: 0 };
+    signals.forEach((tone) => {
+      tally[tone] += 1;
+    });
+    const major =
+      tally.bullish >= tally.bearish && tally.bullish >= tally.neutral
+        ? 'bullish'
+        : tally.bearish >= tally.neutral
+          ? 'bearish'
+          : 'neutral';
+    return { tally, major };
+  }, [technicalSignal, fundamentalSummary.overallRating, bandarmologySummary?.overallSignal, prediction.direction]);
+
   const technicalSignals = useMemo(() => {
     if (!technicalData) return technicalSummary.signals;
     const indicators = technicalData.indicators;
@@ -717,6 +766,13 @@ export function StockAnalysisClient({
   }, [insightCategories]);
 
   const insightScore = insightSummary?.score ?? 0;
+  const sectionLinks = [
+    { id: 'insights', label: 'Insights' },
+    { id: 'signals', label: 'Signals' },
+    { id: 'overview', label: 'Overview' },
+    { id: 'analysis', label: 'Analysis' },
+    { id: 'profile', label: 'Profile' },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -761,6 +817,14 @@ export function StockAnalysisClient({
                     <p className="text-xs text-muted-foreground mt-1">
                       Vol: {formatNumber(info?.volume || stockQuote.volume)} | Val: {formatCurrency(info?.value || stockQuote.value)}
                     </p>
+                    <div className="mt-2 flex flex-wrap items-center justify-end gap-2 text-xs">
+                      <Badge variant="outline" className={toneClass(consensus.major)}>
+                        Consensus {consensus.major.toUpperCase()}
+                      </Badge>
+                      <Badge variant="outline">Bull {consensus.tally.bullish}</Badge>
+                      <Badge variant="outline">Bear {consensus.tally.bearish}</Badge>
+                      <Badge variant="outline">Neutral {consensus.tally.neutral}</Badge>
+                    </div>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">Data tidak tersedia</p>
@@ -770,11 +834,25 @@ export function StockAnalysisClient({
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
-        <Card className="bg-gradient-to-r from-primary/10 to-chart-2/10 border-primary/20">
-          <CardContent className="p-6">
-            {insights ? (
-              <div className="space-y-6">
+      <main className="container mx-auto px-4 py-6 space-y-8">
+        <nav className="sticky top-20 z-40 overflow-x-auto rounded-full border border-border/60 bg-card/70 p-1 backdrop-blur">
+          <div className="flex items-center gap-1">
+            {sectionLinks.map((link) => (
+              <a
+                key={link.id}
+                href={`#${link.id}`}
+                className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground transition hover:text-foreground hover:bg-secondary/60"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </nav>
+        <section id="insights" className="scroll-mt-32">
+          <Card className="bg-gradient-to-r from-primary/10 to-chart-2/10 border-primary/20 reveal-up">
+            <CardContent className="p-6">
+              {insights ? (
+                <div className="space-y-6">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-16 h-16 rounded-full bg-chart-2/20">
@@ -874,66 +952,70 @@ export function StockAnalysisClient({
                     )}
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Info className="w-4 h-4" />
-                Data insights tidak tersedia.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <OverallSignalCard
-            title="Technical"
-            signal={technicalSignal}
-            confidence={technicalConfidence}
-            icon={BarChart3}
-          />
-          <OverallSignalCard
-            title="Fundamental"
-            signal={fundamentalSummary.overallRating}
-            confidence={fundamentalSummary.score}
-            icon={Shield}
-          />
-          <OverallSignalCard
-            title="Bandarmology"
-            signal={bandarmologySummary?.overallSignal || 'neutral'}
-            confidence={bandarmologySummary?.confidence || 50}
-            icon={Users}
-          />
-          <Card className={`${
-            prediction.direction === 'up' ? 'bg-bullish/10' :
-            prediction.direction === 'down' ? 'bg-bearish/10' : 'bg-neutral/10'
-          }`}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Zap className={`w-8 h-8 ${
-                  prediction.direction === 'up' ? 'text-bullish' :
-                  prediction.direction === 'down' ? 'text-bearish' : 'text-neutral'
-                }`} />
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Prediction</p>
-                  <p className={`text-lg font-bold capitalize ${
-                    prediction.direction === 'up' ? 'text-bullish' :
-                    prediction.direction === 'down' ? 'text-bearish' : 'text-neutral'
-                  }`}>
-                    {prediction.direction === 'up' ? 'Bullish' : 
-                     prediction.direction === 'down' ? 'Bearish' : 'Sideways'}
-                  </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold">{(prediction.probability * 100).toFixed(0)}%</p>
-                  <p className="text-xs text-muted-foreground">Probability</p>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Info className="w-4 h-4" />
+                  Data insights tidak tersedia.
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
-        </div>
+        </section>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
+        <section id="signals" className="scroll-mt-32">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 reveal-up reveal-delay-1">
+            <OverallSignalCard
+              title="Technical"
+              signal={technicalSignal}
+              confidence={technicalConfidence}
+              icon={BarChart3}
+            />
+            <OverallSignalCard
+              title="Fundamental"
+              signal={fundamentalSummary.overallRating}
+              confidence={fundamentalSummary.score}
+              icon={Shield}
+            />
+            <OverallSignalCard
+              title="Bandarmology"
+              signal={bandarmologySummary?.overallSignal || 'neutral'}
+              confidence={bandarmologySummary?.confidence || 50}
+              icon={Users}
+            />
+            <Card className={`${
+              prediction.direction === 'up' ? 'bg-bullish/10' :
+              prediction.direction === 'down' ? 'bg-bearish/10' : 'bg-neutral/10'
+            }`}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Zap className={`w-8 h-8 ${
+                    prediction.direction === 'up' ? 'text-bullish' :
+                    prediction.direction === 'down' ? 'text-bearish' : 'text-neutral'
+                  }`} />
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">Prediction</p>
+                    <p className={`text-lg font-bold capitalize ${
+                      prediction.direction === 'up' ? 'text-bullish' :
+                      prediction.direction === 'down' ? 'text-bearish' : 'text-neutral'
+                    }`}>
+                      {prediction.direction === 'up' ? 'Bullish' : 
+                       prediction.direction === 'down' ? 'Bearish' : 'Sideways'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">{(prediction.probability * 100).toFixed(0)}%</p>
+                    <p className="text-xs text-muted-foreground">Probability</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section id="overview" className="scroll-mt-32">
+          <div className="grid gap-4 md:grid-cols-2 reveal-up reveal-delay-2">
+            <Card>
             <CardHeader>
               <CardTitle>Info & Key Stats</CardTitle>
             </CardHeader>
@@ -993,9 +1075,9 @@ export function StockAnalysisClient({
                 </>
               )}
             </CardContent>
-          </Card>
+            </Card>
 
-          <Card>
+            <Card>
             <CardHeader>
               <CardTitle>Seasonality & Ownership</CardTitle>
             </CardHeader>
@@ -1071,9 +1153,11 @@ export function StockAnalysisClient({
                 </>
               )}
             </CardContent>
-          </Card>
-        </div>
+            </Card>
+          </div>
+        </section>
 
+        <section id="analysis" className="scroll-mt-32">
         <Tabs defaultValue="technical" className="space-y-4">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="technical" className="gap-2">
@@ -1144,7 +1228,7 @@ export function StockAnalysisClient({
             </Card>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Card>
+              <Card className="reveal-up reveal-delay-3">
                 <CardHeader>
                   <CardTitle className="text-lg">Technical Indicators</CardTitle>
                   <CardDescription>{technicalData?.summary?.recommendation || 'Real-time technical analysis signals'}</CardDescription>
@@ -1159,7 +1243,7 @@ export function StockAnalysisClient({
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="reveal-up reveal-delay-3">
                 <CardHeader>
                   <CardTitle className="text-lg">Key Metrics</CardTitle>
                   <CardDescription>Current indicator values</CardDescription>
@@ -1912,17 +1996,27 @@ export function StockAnalysisClient({
                 )}
               </TabsContent>
 
-            <TabsContent value="profile" className="space-y-4">
+            <TabsContent value="profile" className="space-y-4" id="profile">
             {profile ? (
               <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Company Overview</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground leading-relaxed">{profile.background}</p>
-                  </CardContent>
-                </Card>
+                <Collapsible defaultOpen>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-lg">Company Overview</CardTitle>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="gap-2">
+                          Toggle
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <p className="text-muted-foreground leading-relaxed">{profile.background}</p>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <Card>
@@ -1976,26 +2070,36 @@ export function StockAnalysisClient({
                   </Card>
                 </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Major Shareholders</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {profile.shareholder?.slice(0, 5).map((holder, idx) => (
-                        <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                          <div className="flex-1">
-                            <p className="font-medium">{holder.name}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-mono font-bold">{holder.percentage}</p>
-                            <p className="text-xs text-muted-foreground">{holder.value}</p>
-                          </div>
+                <Collapsible defaultOpen>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-lg">Major Shareholders</CardTitle>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="gap-2">
+                          Toggle
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {profile.shareholder?.slice(0, 5).map((holder, idx) => (
+                            <div key={idx} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                              <div className="flex-1">
+                                <p className="font-medium">{holder.name}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-mono font-bold">{holder.percentage}</p>
+                                <p className="text-xs text-muted-foreground">{holder.value}</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               </>
             ) : (
               <Card>
@@ -2008,6 +2112,7 @@ export function StockAnalysisClient({
             )}
           </TabsContent>
         </Tabs>
+        </section>
 
         <Card className="bg-yellow-500/5 border-yellow-500/20">
           <CardContent className="p-4">

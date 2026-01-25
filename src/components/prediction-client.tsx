@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, RefreshCw, Activity } from 'lucide-react';
+import { PageHeader } from '@/components/page-header';
+import { Progress } from '@/components/ui/progress';
 
 interface PredictionReason {
   label: string;
@@ -77,28 +79,26 @@ export function PredictionClient({ defaultSymbol }: PredictionClientProps) {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-primary/10">
-              <Activity className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Prediksi Saham (Heuristik)</h1>
-              <p className="text-sm text-muted-foreground">Menggabungkan whale, sentimen, dan harga</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/">
-              <Button variant="ghost" size="icon" aria-label="Back">
-                <ArrowLeft className="w-4 h-4" />
+        <PageHeader
+          eyebrow="Quant Signal"
+          title="Prediksi Saham (Heuristik)"
+          description="Menggabungkan whale, sentimen, dan harga"
+          icon={<Activity className="h-6 w-6 text-primary" />}
+          actions={
+            <>
+              <Link href="/">
+                <Button variant="ghost" size="icon" aria-label="Back">
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={() => fetchPrediction(symbol, minLot)} disabled={isLoading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
               </Button>
-            </Link>
-            <Button variant="outline" size="sm" onClick={() => fetchPrediction(symbol, minLot)} disabled={isLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+          className="mb-6"
+        />
 
         <Card>
           <CardHeader className="flex flex-col gap-3">
@@ -129,6 +129,13 @@ export function PredictionClient({ defaultSymbol }: PredictionClientProps) {
                   <Badge variant="outline">{data.symbol}</Badge>
                   <Badge className={toneClass(data.signal)}>{data.signal}</Badge>
                   <span className="text-lg font-bold">Score: {data.score.toFixed(0)}</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Signal Strength</span>
+                    <span>{Math.max(0, Math.min(100, data.score)).toFixed(0)}%</span>
+                  </div>
+                  <Progress value={Math.max(0, Math.min(100, data.score))} className="h-2" />
                 </div>
                 <div className="flex flex-wrap gap-2 text-sm">
                   {data.reasons.map((r, idx) => (

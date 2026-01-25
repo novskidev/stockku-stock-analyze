@@ -1,5 +1,7 @@
 import { datasahamApi } from '@/lib/datasaham-api';
 import { BrokerSummaryClient } from '@/components/broker-summary-client';
+import { PageHeader } from '@/components/page-header';
+import { Shield } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,12 +22,13 @@ export default async function BrokerSummaryPage() {
 
   return (
     <main className="container mx-auto px-4 py-6">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold">Broker Summary</h1>
-        <p className="text-muted-foreground text-sm">
-          Lihat broker yang masih memegang saham, total lot, nilai net, dan rata-rata pembelian.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Broker Flow"
+        title="Broker Summary"
+        description="Lihat broker yang masih memegang saham, total lot, nilai net, dan rata-rata pembelian."
+        icon={<Shield className="h-6 w-6 text-primary" />}
+        className="mb-6"
+      />
       <BrokerSummaryClient initialSymbol={defaultSymbol} initialData={data} initialFrom={from} initialTo={to} />
     </main>
   );
