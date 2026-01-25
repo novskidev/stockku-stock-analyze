@@ -51,7 +51,7 @@ export function SiteNav() {
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">IDX Intel</p>
-              <p className="text-base font-semibold font-display tracking-tight">StockAnalyzer</p>
+              <p className="text-base font-semibold font-display tracking-tight">Stockku</p>
             </div>
           </Link>
           <button
@@ -96,7 +96,7 @@ export function SiteNav() {
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">IDX Intel</p>
-                  <p className="text-lg font-semibold font-display tracking-tight">StockAnalyzer</p>
+                  <p className="text-lg font-semibold font-display tracking-tight">Stockku</p>
                 </div>
               </Link>
               <button
@@ -162,7 +162,7 @@ export function SiteNav() {
               </div>
               <div className={cn("hidden lg:block", collapsed && "lg:hidden")}>
                 <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">IDX Intel</p>
-                <p className="text-lg font-semibold font-display tracking-tight">StockAnalyzer</p>
+                <p className="text-lg font-semibold font-display tracking-tight">Stockku</p>
               </div>
             </Link>
             <button

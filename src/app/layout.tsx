@@ -23,7 +23,7 @@ const monoFont = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "StockAnalyzer",
+  title: "Stockku",
   description: "The Most Easiest Way to Analyze your Stock",
 };
 

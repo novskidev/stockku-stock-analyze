@@ -184,7 +184,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
       <main className="container mx-auto px-4 py-6">
         <PageHeader
           eyebrow="Market Overview"
-          title="StockAnalyzer"
+          title="Stockku"
           description="Cari saham cepat dan lihat pergerakan pasar"
           icon={<LineChart className="h-6 w-6 text-primary" />}
           actions={
