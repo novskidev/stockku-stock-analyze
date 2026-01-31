@@ -1,8 +1,22 @@
+import { buildCacheKey, getCachedValue, setCachedValue } from '@/lib/redis-cache';
+
 const API_BASE = "https://api.datasaham.io";
 const API_KEY = "sbk_8fbb3824f0f13e617109e37c66b8c7c55a3debbb9a5870b0";
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  const url = `${API_BASE}${endpoint}`;
+  const method = options?.method ?? "GET";
+  const shouldCache = method.toUpperCase() === "GET";
+  const cacheKey = shouldCache ? buildCacheKey("datasaham:legacy", url) : null;
+
+  if (cacheKey) {
+    const cached = await getCachedValue<T>(cacheKey);
+    if (cached !== null) {
+      return cached;
+    }
+  }
+
+  const res = await fetch(url, {
     ...options,
     headers: {
       "x-api-key": API_KEY,
@@ -16,7 +30,11 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
     throw new Error(`API Error: ${res.status}`);
   }
 
-  return res.json();
+  const data: T = await res.json();
+  if (cacheKey) {
+    await setCachedValue(cacheKey, data);
+  }
+  return data;
 }
 
 export interface StockInfo {

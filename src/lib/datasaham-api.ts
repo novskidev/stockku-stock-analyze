@@ -1,3 +1,5 @@
+import { buildCacheKey, getCachedValue, setCachedValue } from '@/lib/redis-cache';
+
 const API_BASE = 'https://api.datasaham.io/api';
 const API_KEY = process.env.DATASAHAM_API_KEY || 'sbk_8fbb3824f0f13e617109e37c66b8c7c55a3debbb9a5870b0';
 
@@ -25,15 +27,20 @@ function appendSearchParams(url: URL, params?: QueryParams) {
   });
 }
 
-async function fetchApi<T>(endpoint: string, params?: QueryParams, revalidate: number = 30): Promise<T> {
+async function fetchApi<T>(endpoint: string, params?: QueryParams, _revalidate: number = 30): Promise<T> {
   const url = new URL(`${API_BASE}${endpoint}`);
   appendSearchParams(url, params);
+  const cacheKey = buildCacheKey('datasaham:data', url.toString());
+  const cached = await getCachedValue<T>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
 
   const response = await fetch(url.toString(), {
     headers: {
       'x-api-key': API_KEY,
     },
-    next: { revalidate },
+    cache: 'no-store',
   });
 
   if (!response.ok) {
@@ -46,18 +53,25 @@ async function fetchApi<T>(endpoint: string, params?: QueryParams, revalidate: n
     throw new Error(result.error || 'API request failed');
   }
 
-  return result.data as T;
+  const data = result.data as T;
+  await setCachedValue(cacheKey, data);
+  return data;
 }
 
-async function fetchApiFull<T>(endpoint: string, params?: QueryParams, revalidate: number = 30): Promise<ApiResponse<T>> {
+async function fetchApiFull<T>(endpoint: string, params?: QueryParams, _revalidate: number = 30): Promise<ApiResponse<T>> {
   const url = new URL(`${API_BASE}${endpoint}`);
   appendSearchParams(url, params);
+  const cacheKey = buildCacheKey('datasaham:full', url.toString());
+  const cached = await getCachedValue<ApiResponse<T>>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
 
   const response = await fetch(url.toString(), {
     headers: {
       'x-api-key': API_KEY,
     },
-    next: { revalidate },
+    cache: 'no-store',
   });
 
   if (!response.ok) {
@@ -65,12 +79,20 @@ async function fetchApiFull<T>(endpoint: string, params?: QueryParams, revalidat
   }
 
   const result: ApiResponse<T> = await response.json();
+  if (result.success) {
+    await setCachedValue(cacheKey, result);
+  }
   return result;
 }
 
 export async function fetchApiClient<T>(endpoint: string, params?: QueryParams): Promise<T> {
   const url = new URL(`${API_BASE}${endpoint}`);
   appendSearchParams(url, params);
+  const cacheKey = buildCacheKey('datasaham:data', url.toString());
+  const cached = await getCachedValue<T>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
 
   const response = await fetch(url.toString(), {
     headers: {
@@ -89,12 +111,19 @@ export async function fetchApiClient<T>(endpoint: string, params?: QueryParams):
     throw new Error(result.error || 'API request failed');
   }
 
-  return result.data as T;
+  const data = result.data as T;
+  await setCachedValue(cacheKey, data);
+  return data;
 }
 
 export async function fetchApiClientFull<T>(endpoint: string, params?: QueryParams): Promise<ApiResponse<T>> {
   const url = new URL(`${API_BASE}${endpoint}`);
   appendSearchParams(url, params);
+  const cacheKey = buildCacheKey('datasaham:full', url.toString());
+  const cached = await getCachedValue<ApiResponse<T>>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
 
   const response = await fetch(url.toString(), {
     headers: {
@@ -108,6 +137,9 @@ export async function fetchApiClientFull<T>(endpoint: string, params?: QueryPara
   }
 
   const result: ApiResponse<T> = await response.json();
+  if (result.success) {
+    await setCachedValue(cacheKey, result);
+  }
   return result;
 }
 
