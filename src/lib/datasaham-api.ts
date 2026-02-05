@@ -1,7 +1,14 @@
 import { buildCacheKey, getCachedValue, setCachedValue } from '@/lib/redis-cache';
 
 const API_BASE = 'https://api.datasaham.io/api';
-const API_KEY = process.env.DATASAHAM_API_KEY || 'sbk_8fbb3824f0f13e617109e37c66b8c7c55a3debbb9a5870b0';
+
+function getApiKey() {
+  const apiKey = process.env.DATASAHAM_API_KEY;
+  if (!apiKey) {
+    throw new Error('DATASAHAM_API_KEY is not set');
+  }
+  return apiKey;
+}
 
 type QueryParamValue = string | string[] | undefined;
 
@@ -38,7 +45,7 @@ async function fetchApi<T>(endpoint: string, params?: QueryParams, _revalidate: 
 
   const response = await fetch(url.toString(), {
     headers: {
-      'x-api-key': API_KEY,
+      'x-api-key': getApiKey(),
     },
     cache: 'no-store',
   });
@@ -69,7 +76,7 @@ async function fetchApiFull<T>(endpoint: string, params?: QueryParams, _revalida
 
   const response = await fetch(url.toString(), {
     headers: {
-      'x-api-key': API_KEY,
+      'x-api-key': getApiKey(),
     },
     cache: 'no-store',
   });
@@ -96,7 +103,7 @@ export async function fetchApiClient<T>(endpoint: string, params?: QueryParams):
 
   const response = await fetch(url.toString(), {
     headers: {
-      'x-api-key': API_KEY,
+      'x-api-key': getApiKey(),
     },
     cache: 'no-store',
   });
@@ -127,7 +134,7 @@ export async function fetchApiClientFull<T>(endpoint: string, params?: QueryPara
 
   const response = await fetch(url.toString(), {
     headers: {
-      'x-api-key': API_KEY,
+      'x-api-key': getApiKey(),
     },
     cache: 'no-store',
   });
