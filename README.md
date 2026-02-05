@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Stockku Stock Price Analysis
 
-## Getting Started
+Aplikasi web berbasis Next.js untuk analisis saham (fokus pasar Indonesia) yang memanfaatkan DataSaham API. Project ini menyediakan landing page dan berbagai halaman analitik seperti dashboard market movers, analisis teknikal, sentimen pasar, hingga data broker dan transaksi besar.
 
-First, run the development server:
+## Fitur Utama
+- Dashboard market movers: top gainers, top losers, most active, net foreign buy.
+- Halaman analisis per saham dengan data historis, technical analysis, orderbook, dan insights.
+- Ringkasan broker dan kalender broker.
+- Market sentiment, retail opportunity, whale transactions, IPO momentum, correlation matrix, dan trending.
+- Landing page modern untuk presentasi produk.
+
+## Tech Stack
+- Next.js 15 + React 19
+- Tailwind CSS v4 + Radix UI
+- Recharts + Framer Motion
+- Zod + React Hook Form
+
+## Prasyarat
+- Node.js dan salah satu package manager: `npm`, `pnpm`, atau `bun`.
+
+## Instalasi
+1. Install dependencies:
+
+```bash
+npm install
+# atau
+pnpm install
+# atau
+bun install
+```
+
+2. Buat file `.env.local` di root project:
+
+```bash
+DATASAHAM_API_KEY=your_api_key_here
+```
+
+3. Jalankan development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
+# atau
 pnpm dev
-# or
+# atau
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Buka `http://localhost:3000` di browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
+- `npm run dev` menjalankan server development.
+- `npm run build` build produksi.
+- `npm run start` menjalankan hasil build.
+- `npm run lint` menjalankan linting.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Rute Utama
+- `/` landing page.
+- `/dashboard` ringkasan market movers.
+- `/stock/[symbol]` analisis detail per saham.
+- `/market-sentiment` sentimen pasar.
+- `/predictions` prediksi pergerakan.
+- `/broker-summary` ringkasan broker.
+- `/broker-calendar` kalender broker.
+- `/correlation-matrix` korelasi saham.
+- `/retail-opportunity` peluang retail.
+- `/whale-transactions` transaksi besar.
+- `/ipo-momentum` momentum IPO.
+- `/trending` saham trending.
 
-## Learn More
+## Catatan
+- Project menggunakan DataSaham API. Pastikan `DATASAHAM_API_KEY` valid agar data bisa diambil.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
