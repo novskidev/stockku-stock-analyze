@@ -121,7 +121,7 @@ export function MoversClient({ initialMovers, defaultFilters }: MoversClientProp
           icon={<Activity className="h-6 w-6 text-primary" />}
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              <Link href="/">
+              <Link href="/dashboard">
                 <Button variant="ghost" size="icon" aria-label="Back">
                   <ArrowLeft className="w-4 h-4" />
                 </Button>

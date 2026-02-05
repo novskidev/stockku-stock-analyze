@@ -100,7 +100,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
           }
           actions={
             <>
-              <Link href="/">
+              <Link href="/dashboard">
                 <Badge variant="outline" className="cursor-pointer flex items-center gap-1">
                   <ArrowLeft className="w-3 h-3" />
                   Back

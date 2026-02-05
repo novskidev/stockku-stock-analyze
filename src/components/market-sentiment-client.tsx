@@ -118,7 +118,7 @@ export function MarketSentimentClient({ initialSymbol, initialSentiment }: Marke
           }
           actions={
             <>
-              <Link href="/">
+              <Link href="/dashboard">
                 <Button variant="ghost" size="icon" aria-label="Back">
                   <ArrowLeft className="w-4 h-4" />
                 </Button>

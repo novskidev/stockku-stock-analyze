@@ -160,7 +160,7 @@ export function IpoMomentumClient({ data }: IpoMomentumClientProps) {
           icon={<Flame className="h-6 w-6 text-primary" />}
           actions={
             <>
-              <Link href="/">
+              <Link href="/dashboard">
                 <Button variant="ghost" size="icon" aria-label="Back">
                   <ArrowLeft className="w-4 h-4" />
                 </Button>

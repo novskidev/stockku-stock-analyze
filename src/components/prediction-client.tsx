@@ -86,7 +86,7 @@ export function PredictionClient({ defaultSymbol }: PredictionClientProps) {
           icon={<Activity className="h-6 w-6 text-primary" />}
           actions={
             <>
-              <Link href="/">
+              <Link href="/dashboard">
                 <Button variant="ghost" size="icon" aria-label="Back">
                   <ArrowLeft className="w-4 h-4" />
                 </Button>

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { VisualEditsMessenger } from "orchids-visual-edits";
-import { SiteNav } from "@/components/site-nav";
 
 const bodyFont = Bricolage_Grotesque({
   variable: "--font-body",
@@ -37,10 +36,7 @@ export default function RootLayout({
       <body
         className={`${bodyFont.variable} ${displayFont.variable} ${monoFont.variable} antialiased`}
       >
-        <div className="min-h-screen w-full flex flex-col lg:flex-row">
-          <SiteNav />
-          <main className="min-w-0 flex-1">{children}</main>
-        </div>
+        {children}
         <VisualEditsMessenger />
       </body>
     </html>

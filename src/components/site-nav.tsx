@@ -7,7 +7,7 @@ import { BarChart3, Rocket, Activity, Users, Shield, Network, ChevronLeft, Chevr
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: BarChart3 },
+  { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   { href: '/retail-opportunity', label: 'Retail Opportunity', icon: Rocket },
   { href: '/movers', label: 'Movers', icon: Activity },
   { href: '/ipo-momentum', label: 'IPO Momentum', icon: Rocket },
@@ -42,7 +42,7 @@ export function SiteNav() {
     <>
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/" className="group flex items-center gap-3">
+          <Link href="/dashboard" className="group flex items-center gap-3">
             <div className="relative h-10 w-10">
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/70 via-primary/20 to-chart-2/30 blur-md opacity-70 transition group-hover:opacity-100" />
               <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-border/60 bg-card/80 shadow-sm">
@@ -87,7 +87,7 @@ export function SiteNav() {
         >
           <div className="flex h-full flex-col gap-6 px-4 py-6">
             <div className="flex items-center justify-between">
-              <Link href="/" className="group flex items-center gap-3" onClick={() => setMobileOpen(false)}>
+              <Link href="/dashboard" className="group flex items-center gap-3" onClick={() => setMobileOpen(false)}>
                 <div className="relative h-11 w-11">
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/70 via-primary/20 to-chart-2/30 blur-md opacity-70 transition group-hover:opacity-100" />
                   <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-border/60 bg-card/80 shadow-sm">
@@ -153,7 +153,7 @@ export function SiteNav() {
         <div className="relative flex h-full flex-col gap-6 px-3 py-6 sm:px-4">
           <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-primary/40 to-transparent" />
           <div className="flex items-center justify-between gap-2">
-            <Link href="/" className="group flex items-center gap-3">
+            <Link href="/dashboard" className="group flex items-center gap-3">
               <div className="relative h-12 w-12">
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/70 via-primary/20 to-chart-2/30 blur-md opacity-70 transition group-hover:opacity-100" />
                 <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-border/60 bg-card/80 shadow-sm">

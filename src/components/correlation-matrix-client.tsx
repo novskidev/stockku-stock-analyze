@@ -143,7 +143,7 @@ export function CorrelationMatrixClient({
           }
           actions={
             <>
-              <Link href="/">
+              <Link href="/dashboard">
                 <Button variant="ghost" size="icon" aria-label="Back">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
