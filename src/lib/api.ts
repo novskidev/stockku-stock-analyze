@@ -1,7 +1,14 @@
 import { buildCacheKey, getCachedValue, setCachedValue } from '@/lib/redis-cache';
 
 const API_BASE = "https://api.datasaham.io";
-const API_KEY = "sbk_8fbb3824f0f13e617109e37c66b8c7c55a3debbb9a5870b0";
+
+function getApiKey() {
+  const apiKey = process.env.DATASAHAM_API_KEY;
+  if (!apiKey) {
+    throw new Error("DATASAHAM_API_KEY is not set");
+  }
+  return apiKey;
+}
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
@@ -19,7 +26,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
   const res = await fetch(url, {
     ...options,
     headers: {
-      "x-api-key": API_KEY,
+      "x-api-key": getApiKey(),
       "Content-Type": "application/json",
       ...options?.headers,
     },

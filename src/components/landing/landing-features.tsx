@@ -29,18 +29,18 @@ const features = [
 
 export function LandingFeatures() {
   return (
-    <section className="relative border-t border-[#28392e] bg-[#0B0E14] py-20">
+    <section className="relative border-t border-border/60 bg-background py-20">
       <div className="mx-auto flex max-w-[1280px] flex-col gap-12 px-6">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <h2 className="text-3xl font-bold text-white md:text-4xl">Advanced Trading Tools</h2>
-            <p className="mt-4 text-slate-400">
+            <h2 className="text-3xl font-bold text-foreground md:text-4xl">Advanced Trading Tools</h2>
+            <p className="mt-4 text-muted-foreground">
               Gain an edge with professional-grade data visualization and analysis tools designed for the modern trader.
             </p>
           </div>
           <a
             href="#"
-            className="inline-flex items-center gap-2 text-sm font-bold text-[#13ec5b] transition-all hover:gap-3"
+            className="inline-flex items-center gap-2 text-sm font-bold text-primary transition-all hover:gap-3"
           >
             View All Features
             <ArrowRight className="h-4 w-4" />
@@ -53,13 +53,13 @@ export function LandingFeatures() {
             return (
               <div
                 key={feature.title}
-                className="group rounded-xl border border-[#28392e] bg-[#161b22] p-6 transition-all duration-300 hover:border-[#13ec5b]/50 hover:shadow-[0_0_20px_rgba(19,236,91,0.12)]"
+                className="group rounded-xl border border-border/60 bg-card p-6 transition-all duration-300 hover:border-primary/50 hover:shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_20%,transparent)]"
               >
-                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-[#28392e] text-white transition-colors group-hover:bg-[#13ec5b] group-hover:text-[#0B0E14]">
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-secondary text-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                   <Icon className="h-6 w-6" />
                 </div>
-                <h3 className="mb-2 text-xl font-bold text-white">{feature.title}</h3>
-                <p className="text-sm leading-relaxed text-slate-400">{feature.description}</p>
+                <h3 className="mb-2 text-xl font-bold text-foreground">{feature.title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
               </div>
             );
           })}

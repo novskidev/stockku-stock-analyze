@@ -10,7 +10,7 @@ import { LandingFooter } from "@/components/landing/landing-footer";
 
 export function LandingPage() {
   return (
-    <div className="landing min-h-screen w-full overflow-x-hidden bg-[#0B0E14] text-white">
+    <div className="landing min-h-screen w-full overflow-x-hidden bg-background text-foreground">
       <div className="relative">
         <LandingBackground />
         <div className="relative z-10 flex min-h-screen flex-col">
