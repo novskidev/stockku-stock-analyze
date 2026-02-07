@@ -78,7 +78,7 @@ export function PredictionClient({ defaultSymbol }: PredictionClientProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8 lg:px-8">
         <PageHeader
           eyebrow="Quant Signal"
           title="Prediksi Saham (Heuristik)"
@@ -108,16 +108,16 @@ export function PredictionClient({ defaultSymbol }: PredictionClientProps) {
                 value={symbol}
                 onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                 placeholder="Symbol (contoh: BBCA)"
-                className="w-32"
+                className="w-full sm:w-32"
               />
               <Input
                 type="number"
                 value={minLot}
                 onChange={(e) => setMinLot(Number(e.target.value) || 0)}
                 placeholder="Min lot whale"
-                className="w-32"
+                className="w-full sm:w-32"
               />
-              <Button onClick={() => fetchPrediction(symbol, minLot)} disabled={isLoading}>
+              <Button onClick={() => fetchPrediction(symbol, minLot)} disabled={isLoading} className="w-full sm:w-auto">
                 Prediksi
               </Button>
             </div>
@@ -146,7 +146,7 @@ export function PredictionClient({ defaultSymbol }: PredictionClientProps) {
                   {data.reasons.length === 0 && <span className="text-muted-foreground text-sm">Tidak ada alasan.</span>}
                 </div>
                 <Separator />
-                <div className="grid gap-3 md:grid-cols-3 text-sm">
+                <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
                   <div>
                     <p className="text-xs text-muted-foreground">Whale Net Flow</p>
                     <p className={((data.inputs?.whale?.activity_summary || data.inputs?.whale?.summary)?.net_whale_flow || 0) >= 0 ? 'text-bullish font-semibold' : 'text-bearish font-semibold'}>

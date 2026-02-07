@@ -777,15 +777,16 @@ export function StockAnalysisClient({
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
+        <div className="container mx-auto px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-3">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="icon">
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
+              </Link>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-2xl font-bold">{symbol}</h1>
                   <Badge variant="outline">IDX</Badge>
                   {stockQuote && (
@@ -804,39 +805,40 @@ export function StockAnalysisClient({
                   </p>
                 )}
               </div>
-              <div className="text-right">
-                {stockQuote ? (
-                  <>
-                    <p className="text-2xl font-bold font-mono">{formatPrice(infoPrice || currentPrice)}</p>
-                    <div className={`flex items-center justify-end gap-1 ${priceChange >= 0 ? 'text-bullish' : 'text-bearish'}`}>
-                      {priceChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                      <span className="font-medium">
-                        {priceChange >= 0 ? '+' : ''}{priceChange.toLocaleString('id-ID')} ({priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%)
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Vol: {formatNumber(info?.volume || stockQuote.volume)} | Val: {formatCurrency(info?.value || stockQuote.value)}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-center justify-end gap-2 text-xs">
-                      <Badge variant="outline" className={toneClass(consensus.major)}>
-                        Consensus {consensus.major.toUpperCase()}
-                      </Badge>
-                      <Badge variant="outline">Bull {consensus.tally.bullish}</Badge>
-                      <Badge variant="outline">Bear {consensus.tally.bearish}</Badge>
-                      <Badge variant="outline">Neutral {consensus.tally.neutral}</Badge>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Data tidak tersedia</p>
-                )}
-              </div>
+            </div>
+            <div className="w-full md:w-auto md:text-right">
+              {stockQuote ? (
+                <>
+                  <p className="text-2xl font-bold font-mono">{formatPrice(infoPrice || currentPrice)}</p>
+                  <div className={`flex items-center justify-start gap-1 md:justify-end ${priceChange >= 0 ? 'text-bullish' : 'text-bearish'}`}>
+                    {priceChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                    <span className="font-medium">
+                      {priceChange >= 0 ? '+' : ''}{priceChange.toLocaleString('id-ID')} ({priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%)
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Vol: {formatNumber(info?.volume || stockQuote.volume)} | Val: {formatCurrency(info?.value || stockQuote.value)}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs md:justify-end">
+                    <Badge variant="outline" className={toneClass(consensus.major)}>
+                      Consensus {consensus.major.toUpperCase()}
+                    </Badge>
+                    <Badge variant="outline">Bull {consensus.tally.bullish}</Badge>
+                    <Badge variant="outline">Bear {consensus.tally.bearish}</Badge>
+                    <Badge variant="outline">Neutral {consensus.tally.neutral}</Badge>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Data tidak tersedia</p>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-8">
+      <main className="container mx-auto px-4 py-6 space-y-8 sm:px-6 sm:py-8 lg:px-8">
         <nav className="sticky top-20 z-40 overflow-x-auto rounded-full border border-border/60 bg-card/70 p-1 backdrop-blur">
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-max items-center gap-1">
             {sectionLinks.map((link) => (
               <a
                 key={link.id}
@@ -1019,7 +1021,7 @@ export function StockAnalysisClient({
             <CardHeader>
               <CardTitle>Info & Key Stats</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-3 text-sm">
+            <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-muted-foreground text-xs">Last</p>
                 <p className="font-semibold">{infoPrice ? formatPrice(infoPrice) : '-'}</p>
@@ -1095,7 +1097,7 @@ export function StockAnalysisClient({
                     </div>
                   </div>
                   <Separator />
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                     <div>
                       <p className="text-xs text-muted-foreground">Last Updated</p>
                       <p className="font-semibold">{formatStatusLabel(subsidiary?.last_updated_period)}</p>
@@ -1159,7 +1161,7 @@ export function StockAnalysisClient({
 
         <section id="analysis" className="scroll-mt-32">
         <Tabs defaultValue="technical" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4">
               <TabsTrigger value="technical" className="gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Technical
@@ -1249,7 +1251,7 @@ export function StockAnalysisClient({
                   <CardDescription>Current indicator values</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="p-3 rounded-lg bg-secondary">
                       <p className="text-xs text-muted-foreground">RSI (14)</p>
                       <p className="text-xl font-bold">
@@ -1311,7 +1313,7 @@ export function StockAnalysisClient({
                 <CardTitle className="text-lg">Support & Resistance</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div>
                     <p className="text-sm font-medium text-bullish mb-2">Resistance Levels</p>
                     {technicalData?.supportResistance?.resistances?.length ? (
@@ -1531,7 +1533,7 @@ export function StockAnalysisClient({
                             ))}
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div className="p-3 rounded-lg bg-secondary">
                             <p className="text-xs text-muted-foreground">Concentration</p>
                             <p className="text-lg font-bold">{bandarAnalysis.accumulation.indicators.broker_concentration.concentration_percentage}%</p>
@@ -1565,7 +1567,7 @@ export function StockAnalysisClient({
                             <p className="text-lg font-bold">{bandarAnalysis.accumulation.indicators.broker_concentration.bandar_status}</p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div className="p-3 rounded-lg bg-secondary">
                             <p className="text-xs text-muted-foreground">Avg Volume Increase</p>
                             <p className="text-lg font-bold">
@@ -1610,7 +1612,7 @@ export function StockAnalysisClient({
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-2">Foreign Flow</p>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="p-3 rounded-lg bg-secondary">
                               <p className="text-xs text-muted-foreground">Net Foreign Flow</p>
                               <p className={`text-lg font-bold ${
@@ -1637,7 +1639,7 @@ export function StockAnalysisClient({
                             </div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div className="p-3 rounded-lg bg-secondary">
                             <p className="text-xs text-muted-foreground">Estimated Acc Value</p>
                             <p className="text-lg font-bold">{bandarAnalysis.accumulation.indicators.estimated_accumulation_value}</p>
@@ -1653,7 +1655,7 @@ export function StockAnalysisClient({
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-2">Entry Zone</p>
-                          <div className="flex justify-between items-center p-3 rounded-lg bg-secondary">
+                          <div className="grid gap-3 rounded-lg bg-secondary p-3 sm:grid-cols-3">
                             <div>
                               <p className="text-xs text-muted-foreground">Ideal Price</p>
                               <p className="font-mono font-bold text-bullish">{formatPrice(bandarAnalysis.accumulation.entry_zone.ideal_price)}</p>
@@ -1716,7 +1718,7 @@ export function StockAnalysisClient({
                             )}
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div className="p-3 rounded-lg bg-secondary">
                             <p className="text-xs text-muted-foreground">Selling %</p>
                             <p className="text-lg font-bold">{bandarAnalysis.distribution.indicators.broker_exit_pattern.selling_percentage}%</p>
@@ -1744,7 +1746,7 @@ export function StockAnalysisClient({
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-2">Price & Volume</p>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="p-3 rounded-lg bg-secondary">
                               <p className="text-xs text-muted-foreground">Price Change</p>
                               <p className={`text-lg font-bold ${
@@ -1775,7 +1777,7 @@ export function StockAnalysisClient({
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground mb-2">Foreign Flow</p>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="p-3 rounded-lg bg-secondary">
                               <p className="text-xs text-muted-foreground">Net Foreign Sell</p>
                               <p className="text-lg font-bold text-bearish">
@@ -1825,7 +1827,7 @@ export function StockAnalysisClient({
                             Rec: {formatStatusLabel(bandarAnalysis.smartMoney.recommendation)}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div className="p-3 rounded-lg bg-secondary">
                             <p className="text-xs text-muted-foreground">Foreign 7D</p>
                             <p className={`text-lg font-bold ${
@@ -1872,7 +1874,7 @@ export function StockAnalysisClient({
                             {' | '}Avg: {formatPrice(bandarAnalysis.smartMoney.analysis.institutional_brokers.avg_price)}
                           </p>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div className="p-3 rounded-lg bg-secondary">
                             <p className="text-xs text-muted-foreground">Insider Buy vs Sell</p>
                             <p className="text-lg font-bold">
@@ -1960,7 +1962,7 @@ export function StockAnalysisClient({
                         </div>
                       ))}
                     </div>
-                    <div className="grid grid-cols-4 gap-4 mt-4">
+                    <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
                       <div className="p-3 rounded-lg bg-secondary">
                         <p className="text-xs text-muted-foreground">Price Surge</p>
                         <p className="text-lg font-bold">{livePumpDump.pump_indicators.price_surge}%</p>
@@ -2132,7 +2134,7 @@ export function StockAnalysisClient({
       </main>
 
       <footer className="border-t border-border py-6">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground sm:px-6 lg:px-8">
           <p>Data dari datasaham.io API. Bukan rekomendasi investasi.</p>
         </div>
       </footer>

@@ -50,10 +50,10 @@ const alerts = [
 
 export function LandingMap() {
   return (
-    <section className="relative overflow-hidden py-24">
+    <section className="relative overflow-hidden py-16 sm:py-24">
       <div className="absolute inset-0 bg-muted/60" />
-      <div className="relative z-10 mx-auto max-w-[1280px] px-6">
-        <div className="rounded-2xl border border-border/60 bg-card p-8 lg:p-12">
+      <div className="relative z-10 mx-auto max-w-[1280px] px-4 sm:px-6">
+        <div className="rounded-2xl border border-border/60 bg-card p-6 sm:p-8 lg:p-12">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
@@ -68,13 +68,13 @@ export function LandingMap() {
                 confidence.
               </p>
             </div>
-            <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary px-5 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground">
+            <button className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary px-5 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground sm:w-auto">
               Open Live Console
               <BarChart3 className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="mt-10 grid gap-6 lg:grid-cols-[1.2fr_0.9fr]">
+          <div className="mt-10 grid gap-4 sm:gap-6 lg:grid-cols-[1.2fr_0.9fr]">
             <div className="rounded-2xl border border-border/60 bg-secondary p-6">
               <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground/80">
                 <Radar className="h-4 w-4 text-primary" />

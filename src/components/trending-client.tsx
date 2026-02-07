@@ -68,7 +68,7 @@ export function TrendingClient({ initialData }: TrendingClientProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8 lg:px-8">
         <PageHeader
           eyebrow="Social Heat"
           title="Trending Stocks"
@@ -104,7 +104,7 @@ export function TrendingClient({ initialData }: TrendingClientProps) {
         ) : (
           <Card className="glass-card">
             <CardContent className="p-0">
-              <Table>
+              <Table className="min-w-[640px]">
                 <TableHeader className="sticky top-0 z-10">
                   <TableRow>
                     <TableHead>#</TableHead>

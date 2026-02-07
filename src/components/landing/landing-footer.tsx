@@ -32,7 +32,7 @@ const footerLinks = [
 
 export function LandingFooter() {
   return (
-    <footer className="border-t border-border/60 bg-background px-6 pb-8 pt-16">
+    <footer className="border-t border-border/60 bg-background px-4 pb-8 pt-16 sm:px-6">
       <div className="mx-auto max-w-[1280px]">
         <div className="grid gap-10 md:grid-cols-4 lg:grid-cols-5">
           <div className="md:col-span-2 lg:col-span-2">
@@ -79,7 +79,7 @@ export function LandingFooter() {
 
         <div className="mt-16 flex flex-col gap-4 border-t border-border/60 pt-8 text-xs text-muted-foreground/70 md:flex-row md:items-center md:justify-between">
           <p>(c) 2026 Stockku Intelligence. All rights reserved.</p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-4">
             <a href="#" className="transition-colors hover:text-muted-foreground">Terms of Service</a>
             <a href="#" className="transition-colors hover:text-muted-foreground">Privacy Policy</a>
             <a href="#" className="transition-colors hover:text-muted-foreground">Cookie Settings</a>

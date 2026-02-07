@@ -24,7 +24,7 @@ export function PageHeader({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-border/60 bg-card/75 p-6 shadow-sm",
+        "relative overflow-hidden rounded-2xl border border-border/60 bg-card/75 p-4 shadow-sm sm:p-6",
         className
       )}
     >
@@ -32,7 +32,7 @@ export function PageHeader({
       <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
           {icon ? (
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/60 bg-secondary/60 shadow-inner">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/60 bg-secondary/60 shadow-inner sm:h-12 sm:w-12">
               {icon}
             </div>
           ) : null}
@@ -42,19 +42,19 @@ export function PageHeader({
                 {eyebrow}
               </p>
             ) : null}
-            <h1 className="font-display text-2xl font-semibold tracking-tight">{title}</h1>
+            <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
             {description ? (
               <p className="text-sm text-muted-foreground">{description}</p>
             ) : null}
             {meta ? (
-              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground sm:text-xs">
                 {meta}
               </div>
             ) : null}
           </div>
         </div>
         {actions ? (
-          <div className="flex flex-wrap items-center gap-2 md:justify-end">{actions}</div>
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">{actions}</div>
         ) : null}
       </div>
     </section>

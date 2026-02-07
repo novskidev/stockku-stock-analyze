@@ -113,7 +113,7 @@ export function MoversClient({ initialMovers, defaultFilters }: MoversClientProp
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8 lg:px-8">
         <PageHeader
           eyebrow="Liquidity Pulse"
           title="Market Movers"
@@ -215,7 +215,7 @@ export function MoversClient({ initialMovers, defaultFilters }: MoversClientProp
                   {currentData.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-8 text-center">Data tidak tersedia.</p>
                   ) : (
-                    <Table>
+                    <Table className="min-w-[900px]">
                       <TableHeader className="sticky top-0 z-10">
                         <TableRow>
                           <TableHead>#</TableHead>

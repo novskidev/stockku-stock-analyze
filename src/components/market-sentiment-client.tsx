@@ -105,7 +105,7 @@ export function MarketSentimentClient({ initialSymbol, initialSentiment }: Marke
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8 lg:px-8">
         <PageHeader
           eyebrow="Behavioral Map"
           title="Market Sentiment"
@@ -136,15 +136,15 @@ export function MarketSentimentClient({ initialSymbol, initialSentiment }: Marke
           <CardHeader className="flex flex-col gap-3">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <CardTitle>Retail vs Bandar Sentiment</CardTitle>
-              <div className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-muted-foreground" />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Search className="hidden w-4 h-4 text-muted-foreground sm:block" />
                 <Input
                   value={symbol}
                   onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                   placeholder="Symbol (contoh: BBCA)"
-                  className="w-48"
+                  className="w-full sm:w-48"
                 />
-                <Button onClick={() => fetchSentiment()} disabled={isLoading}>
+                <Button onClick={() => fetchSentiment()} disabled={isLoading} className="w-full sm:w-auto">
                   Cari
                 </Button>
               </div>

@@ -126,7 +126,7 @@ export function CorrelationMatrixClient({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8 lg:px-8">
         <PageHeader
           eyebrow="Portfolio Insights"
           title="Correlation Matrix Calculator"
@@ -199,7 +199,7 @@ export function CorrelationMatrixClient({
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={fetchCorrelation} disabled={isLoading} className="md:self-end">
+              <Button onClick={fetchCorrelation} disabled={isLoading} className="w-full md:w-auto md:self-end">
                 Hitung Korelasi
               </Button>
             </div>
@@ -281,7 +281,7 @@ export function CorrelationMatrixClient({
               </CardHeader>
               <CardContent>
                 <div className="overflow-auto rounded-lg border border-border">
-                  <Table>
+                  <Table className="min-w-[520px]">
                     <TableHeader className="bg-muted/40">
                       <TableRow>
                         <TableHead className="sticky left-0 z-10 bg-muted/60">Symbol</TableHead>
@@ -321,7 +321,7 @@ export function CorrelationMatrixClient({
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-auto rounded-lg border border-border">
-                    <Table>
+                    <Table className="min-w-[640px]">
                       <TableHeader className="bg-muted/40">
                         <TableRow>
                           <TableHead>Pair</TableHead>

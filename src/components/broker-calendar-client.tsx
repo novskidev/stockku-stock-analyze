@@ -217,7 +217,7 @@ export function BrokerCalendarClient({
                 onChange={(event) => handleMonthInput(event.target.value)}
               />
             </div>
-            <Button type="submit" size="sm" variant="outline" disabled={isLoading}>
+            <Button type="submit" size="sm" variant="outline" disabled={isLoading} className="w-full md:w-auto">
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </form>
@@ -260,7 +260,7 @@ export function BrokerCalendarClient({
                     return (
                       <CalendarDayButton
                         {...props}
-                        className={cn('h-14 justify-center', tone)}
+                        className={cn('h-12 justify-center sm:h-14', tone)}
                       >
                         <span className="text-xs font-medium">{props.day.date.getDate()}</span>
                         {netLabel ? (

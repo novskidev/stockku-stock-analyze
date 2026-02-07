@@ -29,8 +29,8 @@ const features = [
 
 export function LandingFeatures() {
   return (
-    <section className="relative border-t border-border/60 bg-background py-20">
-      <div className="mx-auto flex max-w-[1280px] flex-col gap-12 px-6">
+    <section className="relative border-t border-border/60 bg-background py-16 sm:py-20">
+      <div className="mx-auto flex max-w-[1280px] flex-col gap-12 px-4 sm:px-6">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
             <h2 className="text-3xl font-bold text-foreground md:text-4xl">Advanced Trading Tools</h2>

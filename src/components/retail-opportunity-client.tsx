@@ -87,7 +87,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <PageHeader
           eyebrow="Retail Signal"
           title="Retail Opportunity"
@@ -114,7 +114,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
           className="mb-8"
         />
 
-        <div className="grid gap-4 md:grid-cols-4 mb-6">
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -163,7 +163,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 max-w-lg">
             <TabsTrigger value="multibagger" className="flex items-center gap-2">
               <Rocket className="w-4 h-4" />
               Multibagger
@@ -354,7 +354,7 @@ export function RetailOpportunityClient({ multibagger, breakout, sectorRotation 
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                               <div>
                                 <p className="text-xs text-muted-foreground">Price</p>
                                 <p className="font-mono font-bold">Rp {formatPrice(alert.price)}</p>

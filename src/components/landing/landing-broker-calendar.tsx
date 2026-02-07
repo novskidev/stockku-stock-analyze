@@ -42,9 +42,9 @@ const dailyNetLots = [
 
 export function LandingBrokerCalendar() {
   return (
-    <section className="relative border-t border-border/60 bg-background py-20">
-      <div className="mx-auto max-w-[1280px] px-6">
-        <div className="rounded-2xl border border-border/60 bg-secondary p-8">
+    <section className="relative border-t border-border/60 bg-background py-16 sm:py-20">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
+        <div className="rounded-2xl border border-border/60 bg-secondary p-6 sm:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
@@ -64,7 +64,7 @@ export function LandingBrokerCalendar() {
             </div>
             <Link
               href="/broker-calendar"
-              className="inline-flex items-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+              className="inline-flex w-full items-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground sm:w-auto"
             >
               Open Calendar
               <ArrowRight className="h-4 w-4" />
@@ -79,7 +79,7 @@ export function LandingBrokerCalendar() {
                     <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground/80">{day.date}</p>
                     <p className="mt-2 text-lg font-semibold text-foreground">Net buy summary</p>
                   </div>
-                  <div className="flex gap-4 text-sm">
+                  <div className="flex flex-wrap gap-3 text-sm">
                     <div className="rounded-lg border border-border/60 bg-muted px-3 py-2">
                       <p className="text-xs text-muted-foreground/80">Total Net Lot</p>
                       <p className="text-sm font-bold text-primary">{day.totalNetLot}</p>
@@ -91,24 +91,26 @@ export function LandingBrokerCalendar() {
                   </div>
                 </div>
 
-                <div className="mt-6 overflow-hidden rounded-xl border border-border/60">
-                  <div className="grid grid-cols-4 gap-4 bg-muted px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground/80">
-                    <span>Broker</span>
-                    <span>Net Lot</span>
-                    <span>Avg Price</span>
-                    <span>Net Value</span>
-                  </div>
-                  {day.brokers.map((broker) => (
-                    <div
-                      key={`${day.date}-${broker.code}`}
-                      className="grid grid-cols-4 gap-4 border-t border-border/50 px-4 py-3 text-sm text-foreground/80"
-                    >
-                      <span className="font-semibold text-foreground">{broker.code}</span>
-                      <span className="font-mono text-primary">{broker.netLot}</span>
-                      <span className="font-mono">{broker.avgPrice}</span>
-                      <span className="font-mono">{broker.netValue}</span>
+                <div className="mt-6 overflow-x-auto rounded-xl border border-border/60">
+                  <div className="min-w-[520px]">
+                    <div className="grid grid-cols-4 gap-4 bg-muted px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground/80">
+                      <span>Broker</span>
+                      <span>Net Lot</span>
+                      <span>Avg Price</span>
+                      <span>Net Value</span>
                     </div>
-                  ))}
+                    {day.brokers.map((broker) => (
+                      <div
+                        key={`${day.date}-${broker.code}`}
+                        className="grid grid-cols-4 gap-4 border-t border-border/50 px-4 py-3 text-sm text-foreground/80"
+                      >
+                        <span className="font-semibold text-foreground">{broker.code}</span>
+                        <span className="font-mono text-primary">{broker.netLot}</span>
+                        <span className="font-mono">{broker.avgPrice}</span>
+                        <span className="font-mono">{broker.netValue}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}

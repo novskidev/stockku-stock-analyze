@@ -8,7 +8,7 @@ const dashboardImage = "/images/landing-dashboard.jpg";
 
 export function LandingHero() {
   return (
-    <section className="relative overflow-hidden px-6 pb-24 pt-16 lg:pb-32 lg:pt-28">
+    <section className="relative overflow-hidden px-4 pb-20 pt-14 sm:px-6 sm:pb-24 sm:pt-16 lg:pb-32 lg:pt-28">
       <div className="mx-auto grid max-w-[1280px] items-center gap-12 lg:grid-cols-12">
         <div className="flex flex-col gap-8 lg:col-span-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1">
@@ -38,12 +38,12 @@ export function LandingHero() {
           <div className="flex flex-col gap-4 sm:flex-row">
             <Link
               href="/dashboard"
-              className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-8 text-base font-bold text-primary-foreground transition-all hover:scale-[1.02] hover:bg-primary/90"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-8 text-base font-bold text-primary-foreground transition-all hover:scale-[1.02] hover:bg-primary/90 sm:w-auto"
             >
               Get Started
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <button className="flex h-12 items-center justify-center gap-2 rounded-lg border border-border/70 px-8 text-base font-medium text-foreground transition-all hover:bg-foreground/5">
+            <button className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-border/70 px-8 text-base font-medium text-foreground transition-all hover:bg-foreground/5 sm:w-auto">
               <PlayCircle className="h-5 w-5" />
               Watch Demo
             </button>
@@ -61,7 +61,7 @@ export function LandingHero() {
           </div>
         </div>
 
-        <div className="relative h-[520px] w-full lg:col-span-6 lg:h-[620px] [perspective:1000px]">
+        <div className="relative h-[360px] w-full sm:h-[480px] lg:col-span-6 lg:h-[620px] [perspective:1000px]">
           <div className="absolute inset-0 transition-transform duration-700 hover:[transform:rotateY(2deg)_scale(1.02)]">
             <div className="landing-card h-full w-full overflow-hidden rounded-2xl border border-border/60 shadow-2xl">
               <div className="flex h-8 items-center gap-2 border-b border-border/50 bg-secondary/80 px-4">
@@ -89,7 +89,7 @@ export function LandingHero() {
             </div>
           </div>
 
-          <div className="landing-panel landing-float absolute -left-6 bottom-12 w-64 rounded-lg border border-primary/30 p-4 shadow-xl">
+          <div className="landing-panel landing-float absolute -left-4 bottom-10 hidden w-56 rounded-lg border border-primary/30 p-4 shadow-xl sm:block sm:w-64 sm:-left-6">
             <div className="mb-3 flex items-start justify-between">
               <div className="flex items-center gap-2">
                 <span className="rounded bg-primary/20 px-2 py-1 text-xs font-bold text-primary">
@@ -118,7 +118,7 @@ export function LandingHero() {
             </div>
           </div>
 
-          <div className="landing-panel landing-float-slow absolute -right-3 top-24 w-56 rounded-lg border border-destructive/30 p-4 shadow-xl">
+          <div className="landing-panel landing-float-slow absolute right-0 top-24 hidden w-56 rounded-lg border border-destructive/30 p-4 shadow-xl md:block md:-right-3">
             <div className="mb-2 flex items-center gap-2">
               <span className="text-sm font-bold text-foreground">Tech Sector</span>
               <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-destructive">

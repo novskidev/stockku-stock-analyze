@@ -181,14 +181,14 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <PageHeader
           eyebrow="Market Overview"
           title="Stockku"
           description="Cari saham cepat dan lihat pergerakan pasar"
           icon={<LineChart className="h-6 w-6 text-primary" />}
           actions={
-            <div className="relative z-20 w-full md:max-w-md">
+            <div className="relative z-20 w-full sm:max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
@@ -245,11 +245,11 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 
         <Card className="mb-6 glass-card reveal-up">
           <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <CardTitle>Market Pulse</CardTitle>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline">Breadth {(marketPulse.breadth * 100).toFixed(0)}%</Badge>
-              <Badge variant="outline">Volatility {marketPulse.avgVolatility.toFixed(2)}%</Badge>
-              <Badge variant="outline">Flow {formatNumber(marketPulse.flow)}</Badge>
+          <CardTitle>Market Pulse</CardTitle>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant="outline">Breadth {(marketPulse.breadth * 100).toFixed(0)}%</Badge>
+            <Badge variant="outline">Volatility {marketPulse.avgVolatility.toFixed(2)}%</Badge>
+            <Badge variant="outline">Flow {formatNumber(marketPulse.flow)}</Badge>
             </div>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
@@ -257,7 +257,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
               <p className="text-sm text-muted-foreground">
                 Snapshot aktivitas top movers hari ini, rangkum arah pasar, tekanan, dan arus dana asing.
               </p>
-              <div className="grid grid-cols-3 gap-3 text-sm">
+              <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
                 <div className="rounded-xl border border-border/60 bg-card/60 p-3">
                   <p className="text-xs text-muted-foreground">Breadth</p>
                   <p className="text-xl font-bold">{(marketPulse.breadth * 100).toFixed(0)}%</p>
@@ -282,7 +282,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-4 mb-6">
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="bg-gradient-to-br from-bullish/10 to-bullish/5 border-bullish/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -355,7 +355,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
         <div className="mb-6">
           <Card className="bg-gradient-to-r from-primary/5 to-chart-2/5 border-primary/20">
             <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20">
                     <Zap className="w-6 h-6 text-primary" />
@@ -367,7 +367,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Badge variant="outline" className="gap-1">
                     <BarChart3 className="w-3 h-3" /> Technical
                   </Badge>
@@ -456,7 +456,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
       </main>
 
       <footer className="border-t border-border mt-12 py-6">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground sm:px-6 lg:px-8">
           <p>Data dari datasaham.io API. Bukan rekomendasi investasi.</p>
         </div>
       </footer>

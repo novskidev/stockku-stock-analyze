@@ -88,7 +88,7 @@ export function WhaleTransactionsClient({ initialSymbol, initialResponse }: Whal
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8 lg:px-8">
         <PageHeader
           eyebrow="Institutional Flow"
           title="Whale Transaction Detector"
@@ -118,16 +118,16 @@ export function WhaleTransactionsClient({ initialSymbol, initialResponse }: Whal
                 value={symbol}
                 onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                 placeholder="Symbol (contoh: BBCA)"
-                className="w-32"
+                className="w-full sm:w-32"
               />
               <Input
                 type="number"
                 value={minLot}
                 onChange={(e) => setMinLot(Number(e.target.value) || 0)}
                 placeholder="Min lot (misal 500)"
-                className="w-36"
+                className="w-full sm:w-36"
               />
-              <Button onClick={() => fetchData(symbol, minLot)} disabled={isLoading}>
+              <Button onClick={() => fetchData(symbol, minLot)} disabled={isLoading} className="w-full sm:w-auto">
                 Deteksi
               </Button>
             </div>
@@ -139,7 +139,7 @@ export function WhaleTransactionsClient({ initialSymbol, initialResponse }: Whal
               </Badge>
               <span className="text-muted-foreground">{responseMessage}</span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <p className="text-xs text-muted-foreground">Symbol</p>
                 <p className="font-semibold">{data?.symbol || symbol}</p>
@@ -167,7 +167,7 @@ export function WhaleTransactionsClient({ initialSymbol, initialResponse }: Whal
                 <Badge variant="outline">Value ≥ {formatNumber(data.whale_threshold.value)}</Badge>
               )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
+            <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
               <div>
                 <p className="text-xs text-muted-foreground">Total Buy</p>
                 <p className="font-semibold text-bullish">{formatNumber(summary?.total_whale_buy_value)}</p>
@@ -244,7 +244,7 @@ export function WhaleTransactionsClient({ initialSymbol, initialResponse }: Whal
                               {tx.action || '-'}
                             </Badge>
                           </div>
-                          <div className="mt-2 grid grid-cols-2 gap-2 text-muted-foreground">
+                          <div className="mt-2 grid grid-cols-1 gap-2 text-muted-foreground sm:grid-cols-2">
                             <span>Lot: {formatNumber(tx.lot)}</span>
                             <span>Price: {formatNumber(tx.price)}</span>
                             <span>Value: {formatValueFormatted(tx.value, tx.value_formatted)}</span>

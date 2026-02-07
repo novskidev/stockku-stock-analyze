@@ -158,7 +158,7 @@ export function BrokerSummaryClient({
           )}
           {holdings.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="min-w-[520px] w-full text-sm">
                 <thead className="bg-muted">
                   <tr className="text-left">
                     <th className="px-3 py-2">Broker</th>
